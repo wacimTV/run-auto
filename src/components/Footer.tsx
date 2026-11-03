@@ -169,10 +169,26 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar: Mentions Légales & Droits */}
+        {/* Bottom Bar: Mentions Légales, Droits & Crédit Développeur */}
         <div className="pt-8 border-t border-aluminium flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-technique">
-          <p className="font-medium">© {new Date().getFullYear()} RUN AUTO MARSEILLE. Tous droits réservés.</p>
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+            <p className="font-medium">
+              © {new Date().getFullYear()} RUN AUTO MARSEILLE. Tous droits réservés.
+            </p>
+            <span className="hidden sm:inline text-aluminium">•</span>
+            <p className="font-medium">
+              Développé par{" "}
+              <a
+                href="https://www.wacimammouche.fr/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-carbone hover:text-racing font-bold underline underline-offset-4 decoration-racing/40 hover:decoration-racing transition-colors"
+              >
+                Wacim AMMOUCHE
+              </a>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-6">
             <Link href="/mentions-legales" className="hover:text-carbone transition-colors">
               Mentions légales
             </Link>
