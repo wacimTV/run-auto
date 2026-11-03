@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+:root {
+  /* Palette officielle Run Auto « Racing Light » */
+  --color-blanc: #FFFFFF;
+  --color-glacier: #F2F4F6;
+  --color-aluminium: #E2E6EA;
+  --color-racing: #D71920;
+  --color-racing-hover: #B5121B;
+  --color-racing-soft: rgba(215, 25, 32, 0.07);
+  --color-carbone: #17191D;
+  --color-technique: #626B75;
+  --color-e85: #198754;
+  --color-e85-soft: rgba(25, 135, 84, 0.09);
+}
+
+@theme inline {
+  --color-blanc: var(--color-blanc);
+  --color-glacier: var(--color-glacier);
+  --color-aluminium: var(--color-aluminium);
+  --color-racing: var(--color-racing);
+  --color-racing-hover: var(--color-racing-hover);
+  --color-racing-soft: var(--color-racing-soft);
+  --color-carbone: var(--color-carbone);
+  --color-technique: var(--color-technique);
+  --color-e85: var(--color-e85);
+  --color-e85-soft: var(--color-e85-soft);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-blanc);
+    color: var(--color-carbone);
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-blanc);
+    color: var(--color-carbone);
+    overflow-x: hidden;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-space), var(--font-manrope), sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Custom Racing Light scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-glacier);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-aluminium);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-racing);
+  }
+}
+
+/* Subtle architectural grid for light showroom feel */
+.bg-showroom-grid {
+  background-image:
+    linear-gradient(to right, rgba(23, 25, 29, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(23, 25, 29, 0.03) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Surface & Typography Semantic Utilities */
+.bg-surface-primary {
+  background-color: var(--color-blanc);
+}
+
+.bg-surface-secondary {
+  background-color: var(--color-glacier);
+}
+
+.bg-racing-red {
+  background-color: var(--color-racing);
+}
+
+.text-racing-red {
+  color: var(--color-racing);
+}
+
+.text-gris {
+  color: var(--color-technique);
+}
+
+.text-noir {
+  color: var(--color-carbone);
+}
+
+/* Cards & Surfaces (Cartes blanches, bordures gris aluminium, ombres très légères) */
+.card-showroom,
+.card-racing {
+  background-color: var(--color-blanc);
+  border: 1px solid var(--color-aluminium);
+  box-shadow: 0 4px 20px -4px rgba(23, 25, 29, 0.05), 0 2px 6px -2px rgba(23, 25, 29, 0.03);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-showroom:hover,
+.card-racing:hover {
+  border-color: rgba(215, 25, 32, 0.45);
+  box-shadow: 0 16px 36px -8px rgba(23, 25, 29, 0.09), 0 4px 12px -2px rgba(215, 25, 32, 0.07);
+}
+
+/* Bouton principal : Fond rouge #D71920, texte blanc, survol #B5121B, transition fluide */
+.btn-racing {
+  background-color: var(--color-racing);
+  color: var(--color-blanc);
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 20px -4px rgba(215, 25, 32, 0.32);
+}
+
+.btn-racing:hover {
+  background-color: var(--color-racing-hover);
+  box-shadow: 0 12px 26px -4px rgba(181, 18, 27, 0.44);
+  transform: translateY(-1px);
+  color: var(--color-blanc);
+}
+
+/* Bouton secondaire : Fond blanc, texte noir carbone, bordure gris aluminium, survol touche de rouge */
+.btn-outline-racing {
+  background-color: var(--color-blanc);
+  color: var(--color-carbone);
+  border: 1px solid var(--color-aluminium);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(23, 25, 29, 0.03);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-outline-racing:hover {
+  border-color: var(--color-racing);
+  background-color: var(--color-racing-soft);
+  color: var(--color-racing);
+  transform: translateY(-1px);
+}
+
+/* Bouton secondaire sur section Noir Carbone (#17191D) */
+.btn-outline-dark {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-blanc);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-outline-dark:hover {
+  border-color: var(--color-racing);
+  background-color: rgba(215, 25, 32, 0.18);
+  color: var(--color-blanc);
+  transform: translateY(-1px);
+}
+
+/* Bouton / Badge spécifique Bioéthanol E85 (#198754) */
+.btn-e85 {
+  background-color: var(--color-e85-soft);
+  color: var(--color-e85);
+  border: 1px solid rgba(25, 135, 84, 0.32);
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-e85:hover {
+  background-color: var(--color-e85);
+  border-color: var(--color-e85);
+  color: var(--color-blanc);
+  transform: translateY(-1px);
+}
+
+.badge-sport {
+  background-color: var(--color-racing-soft);
+  border: 1px solid rgba(215, 25, 32, 0.25);
+  color: var(--color-racing);
+}
+
+.badge-e85 {
+  background-color: var(--color-e85-soft);
+  border: 1px solid rgba(25, 135, 84, 0.28);
+  color: var(--color-e85);
+}
