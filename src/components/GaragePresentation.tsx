@@ -38,7 +38,7 @@ export default function GaragePresentation() {
           <div className="lg:col-span-5 relative">
             <div className="relative h-[480px] w-full rounded-3xl overflow-hidden border border-aluminium shadow-lg group">
               <Image
-                src="/images/atelier.jpg"
+                src="/images/atelier-light.jpg"
                 alt="Atelier Run Auto à Marseille 13004 : reprogrammation, électronique et mécanique"
                 fill
                 sizes="(max-width: 1024px) 100vw, 40vw"

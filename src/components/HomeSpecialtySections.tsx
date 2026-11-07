@@ -130,7 +130,7 @@ export default function HomeSpecialtySections() {
               <div className="lg:col-span-5 space-y-4">
                 <div className="relative h-80 sm:h-96 rounded-2xl overflow-hidden border border-aluminium shadow-lg">
                   <Image
-                    src="/images/e85-bioethanol.jpg"
+                    src="/images/e85-bioethanol-light.jpg"
                     alt="Conversion et adaptation au superéthanol E85 chez Run Auto Marseille"
                     fill
                     sizes="(max-width: 1024px) 100vw, 40vw"
@@ -161,7 +161,7 @@ export default function HomeSpecialtySections() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-5 relative h-[400px] rounded-2xl overflow-hidden border border-white/15 shadow-xl order-2 lg:order-1">
                   <Image
-                    src="/images/reprogrammation.jpg"
+                    src="/images/reprogrammation-light.jpg"
                     alt="Reprogrammation et optimisation des paramètres moteur chez Run Auto Marseille"
                     fill
                     sizes="(max-width: 1024px) 100vw, 42vw"
@@ -320,7 +320,7 @@ export default function HomeSpecialtySections() {
 
             <div className="lg:col-span-5 relative h-[440px] rounded-3xl overflow-hidden border border-aluminium shadow-lg">
               <Image
-                src="/images/electronique.jpg"
+                src="/images/electronique-light.jpg"
                 alt="Intervention sur calculateur et électronique automobile chez Run Auto Marseille"
                 fill
                 sizes="(max-width: 1024px) 100vw, 42vw"
@@ -351,7 +351,7 @@ export default function HomeSpecialtySections() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5 relative h-[420px] rounded-3xl overflow-hidden border border-aluminium shadow-lg">
               <Image
-                src="/images/schema-electrique.jpg"
+                src="/images/schema-electrique-light.jpg"
                 alt="Recherche de panne électrique automobile avec schémas constructeur et multimètre"
                 fill
                 sizes="(max-width: 1024px) 100vw, 42vw"
@@ -430,7 +430,7 @@ export default function HomeSpecialtySections() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-4 relative h-56 sm:h-64 rounded-2xl overflow-hidden border border-aluminium">
                 <Image
-                  src="/images/dashboard-warning.jpg"
+                  src="/images/dashboard-warning-light.jpg"
                   alt="Voyants allumés au tableau de bord et diagnostic automobile chez Run Auto Marseille"
                   fill
                   sizes="(max-width: 1024px) 100vw, 33vw"
@@ -535,7 +535,7 @@ export default function HomeSpecialtySections() {
 
             <div className="lg:col-span-5 relative h-[430px] rounded-3xl overflow-hidden border border-aluminium shadow-lg">
               <Image
-                src="/images/diagnostic-tool.jpg"
+                src="/images/diagnostic-tool-light.jpg"
                 alt="Valise de diagnostic automobile professionnelle TOPDON Phoenix Max utilisée chez Run Auto"
                 fill
                 sizes="(max-width: 1024px) 100vw, 42vw"
@@ -571,7 +571,7 @@ export default function HomeSpecialtySections() {
             <div>
               <div className="relative h-60 w-full">
                 <Image
-                  src="/images/options.jpg"
+                  src="/images/options-light.jpg"
                   alt="Cockpit numérique et activation d'options automobiles chez Run Auto Marseille"
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
@@ -634,7 +634,7 @@ export default function HomeSpecialtySections() {
             <div>
               <div className="relative h-60 w-full">
                 <Image
-                  src="/images/fap-exhaust.jpg"
+                  src="/images/fap-exhaust-light.jpg"
                   alt="Solutions FAP : diagnostic, entretien et remise en conformité chez Run Auto Marseille"
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"

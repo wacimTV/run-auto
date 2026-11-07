@@ -48,7 +48,7 @@ export default function ContactForm() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Une eerreur est survenue lors de l'envoi.");
+        throw new Error(data.error || "Une erreur est survenue lors de l'envoi.");
       }
 
       setSuccess(true);

@@ -291,7 +291,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Devis après étude de compatibilité",
       badge: "Prestation phare",
       iconName: "Fuel",
-      heroImage: "/images/e85-bioethanol.jpg",
+      heroImage: "/images/e85-bioethanol-light.jpg",
       imageAlt: "Plein de superéthanol E85 sur un véhicule adapté par Run Auto à Marseille",
       seoTitle: "Conversion Bioéthanol E85 à Marseille – Étude de compatibilité",
       seoDescription:
@@ -382,7 +382,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Devis personnalisé selon motorisation",
       badge: "Expertise",
       iconName: "Gauge",
-      heroImage: "/images/reprogrammation.jpg",
+      heroImage: "/images/reprogrammation-light.jpg",
       imageAlt: "Ordinateur relié à la prise diagnostic pour une reprogrammation moteur chez Run Auto",
       seoTitle: "Reprogrammation Moteur à Marseille – Optimisation sur-mesure",
       seoDescription:
@@ -464,7 +464,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Devis selon l'intervention",
       badge: "Point fort",
       iconName: "CircuitBoard",
-      heroImage: "/images/electronique.jpg",
+      heroImage: "/images/electronique-light.jpg",
       imageAlt: "Calculateur électronique automobile en cours d'analyse à l'atelier Run Auto",
       seoTitle: "Électronique Automobile à Marseille – Codage & Paramétrage",
       seoDescription:
@@ -526,7 +526,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Bilan diagnostic sur devis clair",
       badge: "Technologie de pointe",
       iconName: "Cpu",
-      heroImage: "/images/dashboard-warning.jpg",
+      heroImage: "/images/dashboard-warning-light.jpg",
       imageAlt: "Voyants allumés au tableau de bord avant diagnostic électronique",
       seoTitle: "Diagnostic Voiture & Voyants à Marseille – Diagnostic Électronique",
       seoDescription:
@@ -587,7 +587,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Devis après premier bilan",
       badge: "Pannes complexes",
       iconName: "Zap",
-      heroImage: "/images/schema-electrique.jpg",
+      heroImage: "/images/schema-electrique-light.jpg",
       imageAlt: "Technicien mesurant un faisceau électrique automobile à l'aide d'un multimètre",
       seoTitle: "Recherche de Panne Électrique Automobile à Marseille",
       seoDescription:
@@ -651,7 +651,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Devis selon véhicule et option",
       badge: "Personnalisation",
       iconName: "Sparkles",
-      heroImage: "/images/options.jpg",
+      heroImage: "/images/options-light.jpg",
       imageAlt: "Cockpit numérique moderne d'un véhicule après activation d'options",
       seoTitle: "Ajout & Activation d'Options Automobile à Marseille",
       seoDescription:
@@ -716,7 +716,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Diagnostic & devis avant remise en état",
       badge: "Conforme",
       iconName: "Activity",
-      heroImage: "/images/fap-exhaust.jpg",
+      heroImage: "/images/fap-exhaust-light.jpg",
       imageAlt: "Ligne d'échappement et système de dépollution contrôlés sur pont élévateur",
       seoTitle: "Solutions FAP à Marseille – Diagnostic & Remise en Conformité",
       seoDescription:
@@ -778,7 +778,7 @@ export const GARAGE_CONFIG = {
       durationLabel: "Durée selon l'intervention",
       priceNotice: "Devis précis selon modèle",
       iconName: "Wrench",
-      heroImage: "/images/atelier.jpg",
+      heroImage: "/images/atelier-light.jpg",
       imageAlt: "Véhicule sur pont élévateur dans l'atelier de mécanique Run Auto à Marseille",
       seoTitle: "Mécanique Automobile à Marseille – Embrayage, Train Roulant, Réparation",
       seoDescription:
@@ -837,7 +837,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Contrôle visuel & devis personnalisé",
       badge: "Sécurité absolue",
       iconName: "Disc",
-      heroImage: "/images/workshop-brakes.jpg",
+      heroImage: "/images/workshop-brakes-light.jpg",
       imageAlt: "Contrôle des disques et plaquettes de frein chez Run Auto Marseille",
       seoTitle: "Plaquettes & Disques de Frein à Marseille – Freinage",
       seoDescription:
@@ -883,7 +883,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Devis précis et détaillé selon modèle",
       badge: "Intervention experte",
       iconName: "Cog",
-      heroImage: "/images/diagnostic-engine.jpg",
+      heroImage: "/images/diagnostic-engine-light.jpg",
       imageAlt: "Compartiment moteur avant remplacement du kit de distribution",
       seoTitle: "Remplacement Distribution à Marseille – Kit Courroie & Pompe à Eau",
       seoDescription:
@@ -922,7 +922,7 @@ export const GARAGE_CONFIG = {
       estimatedDurationMinutes: 90,
       priceNotice: "Devis transparent avant intervention",
       iconName: "Droplets",
-      heroImage: "/images/diagnostic-engine.jpg",
+      heroImage: "/images/entretien-light.jpg",
       imageAlt: "Entretien et révision moteur à l'atelier Run Auto Marseille",
       seoTitle: "Entretien & Révision Voiture à Marseille – Vidange",
       seoDescription:
@@ -967,7 +967,7 @@ export const GARAGE_CONFIG = {
       priceNotice: "Test & remplacement sur devis",
       badge: "Intervention rapide",
       iconName: "BatteryCharging",
-      heroImage: "/images/electronique.jpg",
+      heroImage: "/images/diagnostic-tool-light.jpg",
       imageAlt: "Contrôle électrique du circuit de charge d'un véhicule",
       seoTitle: "Batterie & Alternateur à Marseille – Diagnostic Circuit de Charge",
       seoDescription:

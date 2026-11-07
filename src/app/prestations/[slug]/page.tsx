@@ -148,7 +148,7 @@ export default async function ServiceDetailPage({
             {/* Hero Photo */}
             <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-full bg-glacier">
               <Image
-                src={service.heroImage || "/images/hero-performance.jpg"}
+                src={service.heroImage || "/images/hero-performance-light.jpg"}
                 alt={service.imageAlt || `${service.title} chez Run Auto Marseille`}
                 fill
                 priority

@@ -42,7 +42,7 @@ export default function LeGaragePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-24">
           <div className="lg:col-span-6 relative h-[440px] rounded-3xl overflow-hidden border border-aluminium shadow-lg">
             <Image
-              src="/images/diagnostic-tool.jpg"
+              src="/images/diagnostic-tool-light.jpg"
               alt="Station de diagnostic TOPDON Phoenix Max et atelier électronique Run Auto Marseille"
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"

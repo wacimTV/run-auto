@@ -57,7 +57,7 @@ export default function HeroSection() {
       {/* Grande photographie automobile bien visible à droite + dégradé blanc lumineux à gauche */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/hero-performance.jpg"
+          src="/images/hero-performance-light.jpg"
           alt="Véhicule sportif dans l'atelier de reprogrammation et d'électronique automobile Run Auto Marseille"
           fill
           priority
