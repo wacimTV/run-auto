@@ -146,7 +146,7 @@ export default async function ServiceDetailPage({
             </div>
 
             {/* Hero Photo */}
-            <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-full bg-carbone">
+            <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-full bg-glacier">
               <Image
                 src={service.heroImage || "/images/hero-performance.jpg"}
                 alt={service.imageAlt || `${service.title} chez Run Auto Marseille`}

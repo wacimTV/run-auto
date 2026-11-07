@@ -44,7 +44,7 @@ export default function GaragePresentation() {
                 sizes="(max-width: 1024px) 100vw, 40vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-700"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-carbone/20 via-transparent to-transparent" />
 
               {/* Floating Badge */}
               <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium shadow-md">

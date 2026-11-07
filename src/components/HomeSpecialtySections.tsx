@@ -136,7 +136,7 @@ export default function HomeSpecialtySections() {
                     sizes="(max-width: 1024px) 100vw, 40vw"
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-carbone/20 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-white/95 backdrop-blur-md border border-aluminium shadow-md">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-e85 block">
                       Comment fonctionne le bioéthanol E85 ?
@@ -160,15 +160,15 @@ export default function HomeSpecialtySections() {
           <div className="rounded-3xl bg-carbone text-white p-6 sm:p-10 lg:p-14 border border-carbone shadow-2xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-5 relative h-[400px] rounded-2xl overflow-hidden border border-white/15 shadow-xl order-2 lg:order-1">
-                <Image
-                  src="/images/reprogrammation.jpg"
-                  alt="Reprogrammation et optimisation des paramètres moteur chez Run Auto Marseille"
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 42vw"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-carbone/85 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-carbone/92 backdrop-blur-md border border-racing/50">
+                  <Image
+                    src="/images/reprogrammation.jpg"
+                    alt="Reprogrammation et optimisation des paramètres moteur chez Run Auto Marseille"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 42vw"
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-carbone/25 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-carbone/92 backdrop-blur-md border border-racing/50">
                   <p className="text-xs font-bold text-white uppercase tracking-wider">
                     Protocole Run Auto : Diagnostic → Adaptation → Contrôles
                   </p>
@@ -326,7 +326,7 @@ export default function HomeSpecialtySections() {
                 sizes="(max-width: 1024px) 100vw, 42vw"
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 right-5 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium shadow-md">
                 <p className="text-xs font-extrabold text-carbone">
                   Calculateurs moteur, habitacle, ABS/ESP, airbag, gestion batterie
@@ -357,7 +357,7 @@ export default function HomeSpecialtySections() {
                 sizes="(max-width: 1024px) 100vw, 42vw"
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 right-5 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium shadow-md">
                 <p className="text-xs font-extrabold text-carbone">
                   Nous ne nous contentons pas d&apos;effacer les défauts
@@ -436,7 +436,7 @@ export default function HomeSpecialtySections() {
                   sizes="(max-width: 1024px) 100vw, 33vw"
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-bold text-carbone bg-white/95 px-3 py-1.5 rounded-lg border border-aluminium">
                   <span className="flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-racing" />
@@ -541,7 +541,7 @@ export default function HomeSpecialtySections() {
                 sizes="(max-width: 1024px) 100vw, 42vw"
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 right-5 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium shadow-md">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-racing block">
                   Équipement Professionnel Atelier
@@ -577,7 +577,7 @@ export default function HomeSpecialtySections() {
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-carbone/45 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
                 <div className="absolute top-4 left-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/95 border border-aluminium text-xs text-carbone font-bold shadow-2xs">
                   <Sparkles className="w-3.5 h-3.5 text-racing" />
                   <span>Personnalisation &amp; Équipements</span>
@@ -640,7 +640,7 @@ export default function HomeSpecialtySections() {
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-carbone/45 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
                 <div className="absolute top-4 left-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/95 border border-aluminium text-xs text-carbone font-bold shadow-2xs">
                   <Activity className="w-3.5 h-3.5 text-racing" />
                   <span>Conformité Antipollution</span>

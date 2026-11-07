@@ -103,7 +103,7 @@ export default function ServicesCatalogue() {
                 <div>
                   {/* Card Visual Header */}
                   {service.heroImage && (
-                    <div className="relative h-48 w-full overflow-hidden bg-carbone">
+                    <div className="relative h-48 w-full overflow-hidden bg-glacier">
                       <Image
                         src={service.heroImage}
                         alt={service.imageAlt || service.title}
@@ -111,7 +111,7 @@ export default function ServicesCatalogue() {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-carbone/45 via-transparent to-carbone/15" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
                       <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-carbone border border-aluminium shadow-2xs">
                           {service.category}

@@ -48,7 +48,7 @@ export default function LeGaragePage() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-carbone/70 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-carbone/20 via-transparent to-transparent" />
             <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium text-xs shadow-md">
               <p className="font-extrabold text-carbone">
                 Station {GARAGE_CONFIG.equipment.flagshipName} &amp; Schémas Constructeur
