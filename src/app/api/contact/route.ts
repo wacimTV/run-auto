@@ -10,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
-  const contacts = storage.getContacts();
+  const contacts = await storage.getContacts();
   return NextResponse.json({ contacts });
 }
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       ipAddress: getClientIp(request.headers),
     };
 
-    storage.createContact(newContact);
+    await storage.createContact(newContact);
 
     console.log(`[CONTACT SUBMITTED] Nouveau message ${newContact.id} - Sujet: ${newContact.subject}`);
 

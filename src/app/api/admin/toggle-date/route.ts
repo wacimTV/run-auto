@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Date requise (format AAAA-MM-JJ)" }, { status: 400 });
   }
 
-  const isNowBlocked = storage.toggleBlockedDate(date);
+  const isNowBlocked = await storage.toggleBlockedDate(date);
   return NextResponse.json({
     success: true,
     isBlocked: isNowBlocked,

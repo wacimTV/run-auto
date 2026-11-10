@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
-  const appointments = storage.getAppointments();
+  const appointments = await storage.getAppointments();
   return NextResponse.json({ appointments });
 }
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       : "phone";
 
     // Vérification de la disponibilité effective du créneau
-    const availabilityCheck = isSlotAvailable(date, time);
+    const availabilityCheck = await isSlotAvailable(date, time);
     if (!availabilityCheck.available) {
       return NextResponse.json(
         { error: availabilityCheck.error || "Ce créneau n'est pas disponible." },
@@ -152,14 +152,14 @@ export async function POST(request: NextRequest) {
 
     // Sauvegarde atomique avec protection double réservation
     try {
-      storage.createAppointment(newAppointment);
+      await storage.createAppointment(newAppointment);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Ce créneau n'est pas disponible.";
       return NextResponse.json({ error: msg }, { status: 409 });
     }
 
-    // Déclenchement de la notification (non-bloquant)
-    sendAppointmentNotifications(newAppointment).catch((err) =>
+    // Notification attendue : sur Vercel la fonction s'arrête dès la réponse envoyée
+    await sendAppointmentNotifications(newAppointment).catch((err) =>
       console.error("[NOTIFICATION FAILURE]", err)
     );
 

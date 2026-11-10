@@ -24,10 +24,24 @@ export function getStandardSlotsForDay(dayIndex: number): string[] {
   return slots;
 }
 
+/** Date (YYYY-MM-DD) et heure actuelles à Paris, quel que soit le fuseau du serveur. */
+function getParisNow(): { today: string; hour: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return { today: `${get("year")}-${get("month")}-${get("day")}`, hour: parseInt(get("hour"), 10) };
+}
+
 /**
  * Calcule la disponibilité précise de chaque créneau pour une date donnée (YYYY-MM-DD)
  */
-export function getDayAvailability(dateStr: string): DayAvailability {
+export async function getDayAvailability(dateStr: string): Promise<DayAvailability> {
   const dateObj = new Date(dateStr + "T00:00:00");
   const dayIndex = dateObj.getDay();
   const dayConfig = GARAGE_CONFIG.openingHours.find((d) => d.dayIndex === dayIndex);
@@ -36,7 +50,7 @@ export function getDayAvailability(dateStr: string): DayAvailability {
   const isOpenDay = Boolean(dayConfig && dayConfig.isOpen);
 
   // Vérifier si la date est explicitement bloquée
-  const { blockedDates } = storage.getBlockedSlots();
+  const blockedDates = await storage.getBlockedDates();
   if (blockedDates.includes(dateStr) || !isOpenDay) {
     return {
       date: dateStr,
@@ -47,13 +61,12 @@ export function getDayAvailability(dateStr: string): DayAvailability {
   }
 
   const standardSlots = getStandardSlotsForDay(dayIndex);
-  const existingBookings = storage.getAppointmentsByDate(dateStr);
+  const existingBookings = await storage.getAppointmentsByDate(dateStr);
   const bookedTimes = new Set(existingBookings.map((b) => b.time));
 
-  const now = new Date();
-  const isToday =
-    now.toISOString().split("T")[0] === dateStr;
-  const currentHour = now.getHours();
+  // Heure de Marseille (le serveur Vercel tourne en UTC)
+  const { today, hour: currentHour } = getParisNow();
+  const isToday = today === dateStr;
 
   const slots: SlotAvailability[] = standardSlots.map((time) => {
     const slotHour = parseInt(time.split(":")[0], 10);
@@ -93,8 +106,11 @@ export function getDayAvailability(dateStr: string): DayAvailability {
 /**
  * Vérifie si un créneau spécifique est valide et disponible
  */
-export function isSlotAvailable(dateStr: string, timeStr: string): { available: boolean; error?: string } {
-  const dayAvail = getDayAvailability(dateStr);
+export async function isSlotAvailable(
+  dateStr: string,
+  timeStr: string
+): Promise<{ available: boolean; error?: string }> {
+  const dayAvail = await getDayAvailability(dateStr);
   if (!dayAvail.isOpen) {
     return { available: false, error: "Le garage est fermé à cette date (week-end ou fermeture exceptionnelle)." };
   }

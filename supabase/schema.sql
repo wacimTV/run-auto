@@ -23,9 +23,13 @@ CREATE TABLE IF NOT EXISTS public.appointments (
     appointment_time TIME NOT NULL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')),
     internal_notes TEXT,
-    ip_address TEXT,
-    UNIQUE (appointment_date, appointment_time)
+    ip_address TEXT
 );
+
+-- Un seul rendez-vous actif par créneau (un rendez-vous annulé libère le créneau)
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_appointment_slot
+    ON public.appointments (appointment_date, appointment_time)
+    WHERE status <> 'cancelled';
 
 -- Index pour optimiser les requêtes de disponibilité
 CREATE INDEX IF NOT EXISTS idx_appointments_date_time ON public.appointments (appointment_date, appointment_time);
@@ -51,21 +55,8 @@ CREATE TABLE IF NOT EXISTS public.blocked_dates (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- Activation de Row Level Security (RLS)
+-- Activation de Row Level Security (RLS) sans aucune politique publique :
+-- seul le serveur Next.js (clé service_role, jamais exposée au navigateur) peut lire et écrire.
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blocked_dates ENABLE ROW LEVEL SECURITY;
-
--- Politique d'insertion publique sécurisée pour les prises de rendez-vous
-CREATE POLICY "Insertion publique des rendez-vous" 
-    ON public.appointments 
-    FOR INSERT 
-    WITH CHECK (true);
-
--- Politique d'insertion publique pour les formulaires de contact
-CREATE POLICY "Insertion publique des messages de contact" 
-    ON public.contact_messages 
-    FOR INSERT 
-    WITH CHECK (true);
-
--- Les opérations de lecture et mise à jour complètes sont réservées à la clé de service (service_role)

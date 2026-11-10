@@ -23,7 +23,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
   }
 
-  const updated = storage.updateAppointmentStatus(id, status, internalNotes);
+  let updated;
+  try {
+    updated = await storage.updateAppointmentStatus(id, status, internalNotes);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Erreur lors de la mise à jour";
+    return NextResponse.json({ error: msg }, { status: 409 });
+  }
   if (!updated) {
     return NextResponse.json({ error: "Rendez-vous introuvable" }, { status: 404 });
   }
@@ -41,7 +47,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const deleted = storage.deleteAppointment(id);
+  const deleted = await storage.deleteAppointment(id);
   if (!deleted) {
     return NextResponse.json({ error: "Rendez-vous introuvable" }, { status: 404 });
   }

@@ -2,6 +2,10 @@ import { Appointment } from "@/types";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { escapeHtml } from "@/lib/validation";
 
+// Expéditeur : tant que le domaine n'est pas vérifié dans Resend, utiliser "Run Auto <onboarding@resend.dev>"
+// (Resend n'autorise alors l'envoi QU'À l'adresse du compte Resend).
+const EMAIL_FROM = process.env.EMAIL_FROM || "Run Auto <onboarding@resend.dev>";
+
 export async function sendAppointmentNotifications(appointment: Appointment): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -37,7 +41,7 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `Run Auto <notifications@runauto-marseille.fr>`,
+        from: EMAIL_FROM,
         to: [appointment.client.email],
         subject: subjectClient,
         html: `
@@ -56,6 +60,33 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
         `,
       }),
     });
+
+    if (!res.ok) console.error("[EMAIL ERROR] Resend client:", res.status, await res.text());
+
+    // Alerte au garage pour chaque nouvelle demande
+    const garageEmail = process.env.GARAGE_NOTIFICATION_EMAIL;
+    if (garageEmail) {
+      const resGarage = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: EMAIL_FROM,
+          to: [garageEmail],
+          subject: `Nouveau RDV : ${appointment.date} à ${appointment.time} - ${appointment.client.lastName}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px;">
+              <h2>Nouvelle demande de rendez-vous</h2>
+              <p><strong>Client :</strong> ${e.firstName} ${e.lastName} - ${e.phone}</p>
+              <p><strong>Véhicule :</strong> ${e.make} ${e.model}</p>
+              <p><strong>Prestation :</strong> ${e.service}</p>
+              <p><strong>Date souhaitée :</strong> ${e.date} à ${e.time}</p>
+              <p>À confirmer depuis l'espace admin du site (/admin).</p>
+            </div>
+          `,
+        }),
+      });
+      if (!resGarage.ok) console.error("[EMAIL ERROR] Resend garage:", resGarage.status, await resGarage.text());
+    }
 
     return res.ok;
   } catch (error) {

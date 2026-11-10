@@ -21,6 +21,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const availability = getDayAvailability(date);
+  const availability = await getDayAvailability(date);
   return NextResponse.json(availability);
 }

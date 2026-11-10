@@ -12,9 +12,11 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
-  const appointments = storage.getAppointments();
-  const contacts = storage.getContacts();
-  const { blockedDates } = storage.getBlockedSlots();
+  const [appointments, contacts, blockedDates] = await Promise.all([
+    storage.getAppointments(),
+    storage.getContacts(),
+    storage.getBlockedDates(),
+  ]);
 
   return (
     <AdminDashboardClient
