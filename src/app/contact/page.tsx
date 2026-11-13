@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
+import GoogleMapEmbed from "@/components/GoogleMapEmbed";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { MapPin, Phone, Clock, Navigation, Fuel, Gauge, Cpu } from "lucide-react";
 
@@ -109,15 +110,8 @@ export default function ContactPage() {
             </div>
 
             {/* Embedded Natural Map */}
-            <div className="rounded-2xl overflow-hidden border border-aluminium h-64 shadow-sm bg-white">
-              <iframe
-                title="Localisation GPS Run Auto 13004 Marseille"
-                src={GARAGE_CONFIG.contact.googleMapsEmbedUrl}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-              />
+            <div className="rounded-2xl overflow-hidden border border-aluminium min-h-64 shadow-sm bg-white">
+              <GoogleMapEmbed minHeight={256} />
             </div>
           </div>
 

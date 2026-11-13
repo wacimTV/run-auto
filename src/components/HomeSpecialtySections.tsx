@@ -430,14 +430,14 @@ export default function HomeSpecialtySections() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-4 relative h-56 sm:h-64 rounded-2xl overflow-hidden border border-aluminium">
                 <Image
-                  src="/images/dashboard-warning-light.jpg"
-                  alt="Voyants allumés au tableau de bord et diagnostic automobile chez Run Auto Marseille"
+                  src="/images/dashboard-voyants.svg"
+                  alt="Tableau de bord avec tous les voyants allumés (moteur, FAP, AdBlue, préchauffage, huile, batterie, freins, ABS, ESP, airbag, pneus) - diagnostic chez Run Auto Marseille"
                   fill
+                  unoptimized
                   sizes="(max-width: 1024px) 100vw, 33vw"
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-carbone/15 via-transparent to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-bold text-carbone bg-white/95 px-3 py-1.5 rounded-lg border border-aluminium">
+                <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-[11px] font-bold text-carbone bg-white/95 px-3 py-1.5 rounded-lg border border-aluminium">
                   <span className="flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-racing" />
                     Diagnostic Voyants

@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Phone, Mail, Clock, Cpu, ChevronRight, Lock, Fuel } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
 
@@ -10,20 +11,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           {/* Col 1: Marque & Positionnement */}
           <div className="flex flex-col gap-5">
-            <Link href="/" className="flex items-center gap-3.5 group">
-              <div className="w-10 h-10 rounded-lg bg-carbone border border-carbone flex items-center justify-center shadow-xs group-hover:bg-racing group-hover:border-racing transition-colors">
-                <span className="text-white font-black tracking-tighter text-lg font-display italic">
-                  R
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-extrabold tracking-[0.16em] text-carbone uppercase font-display">
-                  RUN <span className="text-racing">AUTO</span>
-                </span>
-                <span className="text-[10px] tracking-[0.22em] text-technique uppercase font-semibold">
-                  Marseille 13004
-                </span>
-              </div>
+            <Link href="/" className="flex items-center gap-3.5 group w-fit">
+              <Image
+                src="/images/logo-run-auto.png"
+                alt="Logo Run Auto Marseille"
+                width={150}
+                height={66}
+                className="h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+              />
             </Link>
 
             <p className="text-sm leading-relaxed text-technique">

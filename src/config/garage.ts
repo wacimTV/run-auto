@@ -180,17 +180,33 @@ export const GARAGE_CONFIG = {
       "Les fonctions disponibles varient selon la marque, le modèle, l'année et les calculateurs du véhicule. Nous vérifions la faisabilité avant toute intervention.",
   },
 
-  // Informations légales (facilement modifiables dès communication par le gérant)
+  // Informations légales — source : Annuaire des Entreprises (INSEE / INPI), novembre 2026
   legal: {
-    siren: "À renseigner (ex: 890 000 000)",
-    siret: "À renseigner (ex: 890 000 000 00012)",
-    rcs: "Marseille B",
-    tvaIntracommunautaire: "À renseigner (ex: FR00890000000)",
-    formeJuridique: "Entreprise individuelle / Société (à confirmer)",
-    directeurPublication: "Responsable Run Auto",
-    hebergement: "Vercel Inc. / Serveur dédié sécurisé en Europe",
+    raisonSociale: "RUN AUTO",
+    siren: "101 455 913",
+    siret: "101 455 913 00018",
+    rcs: "Immatriculée au Registre National des Entreprises (RNE) sous le n° 101 455 913",
+    tvaIntracommunautaire: "FR84 101 455 913",
+    formeJuridique: "SAS (société par actions simplifiée)",
+    capitalSocial: "1 000 €",
+    codeNaf: "45.20A – Entretien et réparation de véhicules automobiles légers",
+    siegeSocial: "52 boulevard de Roux, 13004 Marseille",
+    directeurPublication: "Faiçal TBIEL, Président",
     donneesPersonnellesDPO: "contact@runauto-marseille.fr",
   },
+
+  // Hébergement et sous-traitants techniques (mentions légales + politique de confidentialité)
+  hosting: {
+    name: "Vercel Inc.",
+    address: "440 N Barranca Ave #4133, Covina, CA 91723, États-Unis",
+    website: "https://vercel.com",
+  },
+  processors: [
+    { name: "Vercel Inc.", role: "Hébergement du site", location: "États-Unis / Union européenne" },
+    { name: "Supabase Inc.", role: "Base de données des rendez-vous et messages", location: "Union européenne (Paris)" },
+    { name: "Resend", role: "Envoi des e-mails de confirmation", location: "États-Unis / Union européenne" },
+    { name: "Cloudflare Inc.", role: "Protection anti-robot des formulaires (Turnstile)", location: "États-Unis / Union européenne" },
+  ],
 
   // Horaires officiels : Lundi au Vendredi 09:00 - 19:00, Samedi & Dimanche Fermé
   openingHours: [
@@ -1025,40 +1041,39 @@ export const GARAGE_CONFIG = {
     },
   ],
 
-  // Avis clients authentiques & fiches publiques (contenus existants conservés à l'identique)
+  /**
+   * Avis clients RÉELS issus de la fiche publique idGarages (relevé du 13/11/2026).
+   * Règle : n'ajouter que des avis copiés à l'identique depuis une source vérifiable,
+   * avec l'auteur tel qu'affiché et la date réelle. Mettre à jour la note et le nombre d'avis
+   * en même temps que la fiche idGarages.
+   */
   reviewsSummary: {
     verifiedAverageRating: 4.7,
+    reviewCount: 68,
     maxRating: 5,
-    sourceName: "Réseau idGarages certifié",
+    lastChecked: "13 novembre 2026",
+    sourceName: "idGarages",
     sourceUrl: "https://www.idgarages.com/fr-fr/garage/marseille/GA7683_run-auto",
     notice:
-      "Avis certifiés issus des plateformes de réservation professionnelles et des retours d'expérience clients.",
+      "Note et avis publiés par des clients ayant réservé via la plateforme idGarages (label Garage Confiance idGarages / Autoplus).",
+    // Notes détaillées affichées sur la fiche idGarages
+    criteria: [
+      { label: "Délai de prise en charge", score: 5 },
+      { label: "Accueil personnalisé", score: 5 },
+      { label: "Qualité d'intervention", score: 5 },
+      { label: "Respect horaire de la restitution", score: 5 },
+      { label: "Respect du devis", score: 5 },
+      { label: "Qualité de l'explication", score: 5 },
+    ],
     testimonials: [
       {
-        author: "Client vérifié idGarages",
-        vehicle: "Véhicule berline",
-        date: "Récemment",
+        author: "Arnaud.J",
+        vehicle: "Client idGarages",
+        date: "16 juillet 2026",
         rating: 5,
-        comment:
-          "Prise en charge ponctuelle, explications claires sur l'état de mes freins sans forcer à la dépense. Travail propre et soigné.",
+        comment: "Ponctuel, réparation effectuée et dans les temps.",
       },
-      {
-        author: "Automobiliste Marseille 13004",
-        vehicle: "Véhicule compact",
-        date: "Récemment",
-        rating: 5,
-        comment:
-          "Très bon accueil, devis respecté à l'euro près pour ma révision annuelle. Garage sérieux et de confiance dans le quartier.",
-      },
-      {
-        author: "Client vérifié",
-        vehicle: "SUV diesel",
-        date: "Récemment",
-        rating: 4.5,
-        comment:
-          "Diagnostic rapide suite à un voyant moteur. Problème de capteur résolu dans la journée. Équipe disponible et transparente.",
-      },
-    ],
+    ] as { author: string; vehicle: string; date: string; rating: number; comment: string }[],
   },
 };
 

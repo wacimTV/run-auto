@@ -12,6 +12,8 @@ import {
   getClientIp,
   isValidPhone,
 } from "@/lib/validation";
+import { rateLimit } from "@/lib/rateLimit";
+import { verifyTurnstile } from "@/lib/turnstile";
 import { Appointment, PreferredContactMethod } from "@/types";
 
 const CUSTOM_SERVICE_NAME = "Demande sur-mesure / Diagnostic approfondi";
@@ -37,6 +39,23 @@ export async function POST(request: NextRequest) {
     // Protection anti-spam honeypot
     if (typeof body.website_trap === "string" && body.website_trap.length > 0) {
       return NextResponse.json({ error: "Requête suspecte rejetée" }, { status: 400 });
+    }
+
+    // Limitation : 5 demandes par heure et par IP
+    const ip = getClientIp(request.headers);
+    if (!(await rateLimit(`appointment:ip:${ip}`, 5, 60 * 60))) {
+      return NextResponse.json(
+        { error: "Trop de demandes envoyées. Merci de réessayer plus tard ou de nous appeler." },
+        { status: 429 }
+      );
+    }
+
+    // Vérification anti-robot (Cloudflare Turnstile, si configuré)
+    if (!(await verifyTurnstile(body.turnstileToken, ip))) {
+      return NextResponse.json(
+        { error: "La vérification anti-robot a échoué. Merci de réessayer." },
+        { status: 403 }
+      );
     }
 
     const vehicle = body.vehicle && typeof body.vehicle === "object" ? body.vehicle : {};
@@ -108,6 +127,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Numéro de téléphone incomplet." }, { status: 400 });
     }
 
+    // Limitation par destinataire : empêche d'utiliser le formulaire pour inonder une boîte e-mail
+    if (!(await rateLimit(`appointment:email:${email}`, 3, 24 * 60 * 60))) {
+      return NextResponse.json(
+        { error: "Plusieurs demandes ont déjà été envoyées avec cette adresse aujourd'hui. Merci de nous appeler." },
+        { status: 429 }
+      );
+    }
+
     const preferredContact: PreferredContactMethod = ALLOWED_CONTACT.includes(client.preferredContact)
       ? client.preferredContact
       : "phone";
@@ -147,7 +174,7 @@ export async function POST(request: NextRequest) {
       date,
       time,
       status: "pending",
-      ipAddress: getClientIp(request.headers),
+      ipAddress: ip,
     };
 
     // Sauvegarde atomique avec protection double réservation

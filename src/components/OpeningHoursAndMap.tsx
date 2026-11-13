@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Clock, MapPin, Phone, Navigation, Calendar } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import GoogleMapEmbed from "@/components/GoogleMapEmbed";
 
 export default function OpeningHoursAndMap() {
   return (
@@ -107,20 +108,7 @@ export default function OpeningHoursAndMap() {
 
           {/* Interactive Map Embed */}
           <div className="lg:col-span-7 rounded-2xl overflow-hidden border border-aluminium shadow-[0_10px_30px_-8px_rgba(23,25,29,0.05)] relative min-h-[420px] bg-white">
-            <iframe
-              title="Carte localisation Run Auto Marseille 13004"
-              src={GARAGE_CONFIG.contact.googleMapsEmbedUrl}
-              width="100%"
-              height="100%"
-              style={{
-                border: 0,
-                minHeight: "420px",
-              }}
-              allowFullScreen={false}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="w-full h-full"
-            />
+            <GoogleMapEmbed />
             {/* Overlay badge on map */}
             <div className="absolute top-4 left-4 p-3.5 rounded-xl bg-white/95 backdrop-blur-md border border-aluminium text-xs text-carbone shadow-md">
               <p className="font-extrabold text-carbone font-display">

@@ -97,6 +97,7 @@ const jsonLd = {
   "@type": "AutoRepair",
   name: GARAGE_CONFIG.name,
   description: GARAGE_CONFIG.activity,
+  logo: "https://runauto-marseille.fr/images/logo-run-auto.png",
   image: "https://runauto-marseille.fr/images/hero-performance.jpg",
   "@id": "https://runauto-marseille.fr/#garage",
   url: "https://runauto-marseille.fr",
@@ -136,13 +137,9 @@ const jsonLd = {
       },
     })),
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: GARAGE_CONFIG.reviewsSummary.verifiedAverageRating,
-    reviewCount: 42,
-    bestRating: "5",
-    worstRating: "1",
-  },
+  // Pas d'aggregateRating : Google interdit les avis "auto-hébergés" issus d'une plateforme tierce.
+  legalName: GARAGE_CONFIG.legal.raisonSociale,
+  taxID: GARAGE_CONFIG.legal.tvaIntracommunautaire.replace(/\s/g, ""),
   sameAs: [GARAGE_CONFIG.partner.idGaragesUrl],
 };
 

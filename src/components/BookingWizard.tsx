@@ -13,8 +13,10 @@ import {
   Loader2,
   ShieldAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { DayAvailability } from "@/types";
+import TurnstileWidget, { turnstileEnabled } from "@/components/TurnstileWidget";
 
 interface BookingWizardProps {
   initialServiceId?: string;
@@ -47,11 +49,20 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
     preferredContact: "phone" as "phone" | "sms" | "email",
   });
 
-  // Date and slots state
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  // Date and slots state (première date ouvrée disponible pré-sélectionnée)
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    for (let i = 1; i <= 7; i++) {
+      const d = addDays(new Date(), i);
+      if (d.getDay() !== 0 && d.getDay() !== 6) return format(d, "yyyy-MM-dd");
+    }
+    return "";
+  });
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [availability, setAvailability] = useState<DayAvailability | null>(null);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState<{ date: string; message: string } | null>(null);
+  // Chargement en cours tant que les créneaux affichés ne correspondent pas à la date choisie
+  const loadingSlots =
+    Boolean(selectedDate) && availability?.date !== selectedDate && slotsError?.date !== selectedDate;
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,8 +74,10 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
     serviceName: string;
   } | null>(null);
 
-  // Anti-spam trap
+  // Anti-spam trap + vérification anti-robot
   const [honeypot, setHoneypot] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileReset, setTurnstileReset] = useState(0);
 
   // Génération des 21 prochains jours pour la sélection de date
   const availableDays = Array.from({ length: 21 }, (_, i) => {
@@ -78,35 +91,31 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
     };
   });
 
-  // Initialisation de la première date disponible
-  useEffect(() => {
-    const firstValidDay = availableDays.find((d) => !d.isWeekend);
-    if (firstValidDay && !selectedDate) {
-      setSelectedDate(firstValidDay.dateStr);
-    }
-  }, []);
+  // Changement de jour : l'heure choisie est réinitialisée
+  const selectDate = (date: string) => {
+    setSelectedDate(date);
+    setSelectedTime("");
+  };
 
   // Chargement des créneaux dès changement de date
   useEffect(() => {
     if (!selectedDate) return;
 
     let isMounted = true;
-    setLoadingSlots(true);
-    setErrorMessage(null);
 
     fetch(`/api/slots?date=${selectedDate}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data: DayAvailability) => {
         if (!isMounted) return;
         setAvailability(data);
-        setSelectedTime(""); // Réinitialiser l'heure lors d'un changement de jour
-        setLoadingSlots(false);
       })
       .catch((err) => {
         if (!isMounted) return;
         console.error("Erreur de récupération des créneaux", err);
-        setErrorMessage("Impossible de charger les créneaux pour cette date.");
-        setLoadingSlots(false);
+        setSlotsError({ date: selectedDate, message: "Impossible de charger les créneaux pour cette date." });
       });
 
     return () => {
@@ -132,12 +141,17 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
 
   // Soumission finale
   const handleSubmit = async () => {
+    if (turnstileEnabled && !turnstileToken) {
+      setErrorMessage("Merci de valider la vérification anti-robot.");
+      return;
+    }
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
       const payload = {
         website_trap: honeypot, // Honeypot
+        turnstileToken,
         serviceId: isCustomService ? "custom" : selectedServiceId,
         serviceName: getSelectedServiceName(),
         isCustomRequest: isCustomService,
@@ -171,6 +185,9 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
       const msg = err instanceof Error ? err.message : "Erreur de connexion";
       setErrorMessage(msg);
     } finally {
+      // Un jeton Turnstile n'est valable qu'une fois
+      setTurnstileToken("");
+      setTurnstileReset((n) => n + 1);
       setIsSubmitting(false);
     }
   };
@@ -578,7 +595,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                     key={d.dateStr}
                     type="button"
                     disabled={d.isWeekend}
-                    onClick={() => setSelectedDate(d.dateStr)}
+                    onClick={() => selectDate(d.dateStr)}
                     className={`shrink-0 flex flex-col items-center py-3 px-4 rounded-xl border text-xs transition-all ${
                       d.isWeekend
                         ? "opacity-40 cursor-not-allowed bg-glacier border-aluminium text-technique"
@@ -606,6 +623,10 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               <div className="py-12 flex flex-col items-center justify-center gap-3 text-technique">
                 <Loader2 className="w-6 h-6 animate-spin text-racing" />
                 <span className="text-xs">Vérification des disponibilités en temps réel...</span>
+              </div>
+            ) : slotsError?.date === selectedDate ? (
+              <div className="p-6 rounded-xl bg-racing-soft border border-racing/30 text-center text-sm text-racing">
+                {slotsError.message} Vous pouvez aussi nous appeler au {GARAGE_CONFIG.contact.phoneDisplay}.
               </div>
             ) : availability && !availability.isOpen ? (
               <div className="p-6 rounded-xl bg-glacier border border-aluminium text-center text-sm text-technique">
@@ -755,6 +776,18 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               </p>
             </div>
           </div>
+
+          <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileReset} />
+
+          <p className="text-[11px] leading-relaxed text-technique">
+            Vos coordonnées et les informations sur votre véhicule sont utilisées uniquement par Run Auto pour
+            traiter ce rendez-vous et vous recontacter, puis conservées 3 ans au maximum. Vous pouvez y accéder,
+            les rectifier ou les faire supprimer à tout moment.{" "}
+            <Link href="/politique-confidentialite" className="underline hover:text-racing">
+              En savoir plus sur vos données
+            </Link>
+            .
+          </p>
 
           <div className="flex items-center justify-between pt-4">
             <button

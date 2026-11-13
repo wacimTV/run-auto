@@ -5,7 +5,6 @@
 export function cleanString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
   // Supprime les caractères de contrôle (hors retours à la ligne / tabulations)
-  // eslint-disable-next-line no-control-regex
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, maxLength);
 }
 
@@ -28,7 +27,16 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * IP du visiteur. Sur Vercel, x-real-ip / x-vercel-forwarded-for sont posés par la plateforme
+ * (non falsifiables par le client), contrairement au premier élément d'un x-forwarded-for brut.
+ */
 export function getClientIp(headers: Headers): string {
-  return headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
+  return (
+    headers.get("x-real-ip")?.trim() ||
+    headers.get("x-vercel-forwarded-for")?.split(",")[0].trim() ||
+    headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    "local"
+  );
 }
 

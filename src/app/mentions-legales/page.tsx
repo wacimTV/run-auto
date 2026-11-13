@@ -26,22 +26,25 @@ export default function MentionsLegalesPage() {
         <section className="space-y-4 p-6 rounded-2xl bg-white border border-aluminium shadow-[0_8px_24px_-6px_rgba(23,25,29,0.04)]">
           <h2 className="text-xl font-bold text-carbone font-display">1. Présentation de l&apos;Entreprise</h2>
           <ul className="space-y-2 text-sm">
-            <li><strong className="text-carbone">Dénomination commerciale :</strong> {GARAGE_CONFIG.name}</li>
-            <li><strong className="text-carbone">Activité :</strong> {GARAGE_CONFIG.activity}</li>
-            <li><strong className="text-carbone">Adresse de l&apos;établissement :</strong> {GARAGE_CONFIG.contact.fullAddress}</li>
+            <li><strong className="text-carbone">Raison sociale :</strong> {GARAGE_CONFIG.legal.raisonSociale}</li>
+            <li><strong className="text-carbone">Forme juridique :</strong> {GARAGE_CONFIG.legal.formeJuridique}, au capital de {GARAGE_CONFIG.legal.capitalSocial}</li>
+            <li><strong className="text-carbone">Siège social :</strong> {GARAGE_CONFIG.legal.siegeSocial}</li>
+            <li><strong className="text-carbone">SIREN :</strong> {GARAGE_CONFIG.legal.siren}</li>
+            <li><strong className="text-carbone">SIRET (siège) :</strong> {GARAGE_CONFIG.legal.siret}</li>
+            <li><strong className="text-carbone">Immatriculation :</strong> {GARAGE_CONFIG.legal.rcs}</li>
+            <li><strong className="text-carbone">N° TVA intracommunautaire :</strong> {GARAGE_CONFIG.legal.tvaIntracommunautaire}</li>
+            <li><strong className="text-carbone">Activité (code NAF) :</strong> {GARAGE_CONFIG.legal.codeNaf}</li>
             <li><strong className="text-carbone">Téléphone :</strong> {GARAGE_CONFIG.contact.phoneDisplay}</li>
-            <li><strong className="text-carbone">E-mail de contact :</strong> {GARAGE_CONFIG.contact.email}</li>
-            <li><strong className="text-carbone">Numéro SIRET :</strong> {GARAGE_CONFIG.legal.siret} <span className="text-xs text-racing">(information à confirmer par le gérant avant mise en ligne)</span></li>
-            <li><strong className="text-carbone">Numéro RCS :</strong> {GARAGE_CONFIG.legal.rcs}</li>
-            <li><strong className="text-carbone">Numéro TVA Intracommunautaire :</strong> {GARAGE_CONFIG.legal.tvaIntracommunautaire}</li>
-            <li><strong className="text-carbone">Responsable de publication :</strong> {GARAGE_CONFIG.legal.directeurPublication}</li>
+            <li><strong className="text-carbone">E-mail :</strong> {GARAGE_CONFIG.contact.email}</li>
+            <li><strong className="text-carbone">Directeur de la publication :</strong> {GARAGE_CONFIG.legal.directeurPublication}</li>
           </ul>
         </section>
 
         <section className="space-y-4 p-6 rounded-2xl bg-white border border-aluminium shadow-[0_8px_24px_-6px_rgba(23,25,29,0.04)]">
           <h2 className="text-xl font-bold text-carbone font-display">2. Hébergement du Site Internet</h2>
           <p className="text-sm leading-relaxed">
-            Le site est hébergé par Vercel Inc. (440 N Barranca Ave #4133, Covina, CA 91723, États-Unis) ou serveur cloud sécurisé en Union Européenne, garantissant un niveau élevé de sécurité et de conformité aux standards européens.
+            Le site est hébergé par <strong className="text-carbone">{GARAGE_CONFIG.hosting.name}</strong>, {GARAGE_CONFIG.hosting.address} ({GARAGE_CONFIG.hosting.website}).
+            Les données des formulaires sont stockées par Supabase Inc. sur des serveurs situés dans l&apos;Union européenne.
           </p>
         </section>
 

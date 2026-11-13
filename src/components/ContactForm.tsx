@@ -1,38 +1,40 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { QUOTE_SUBJECTS } from "@/config/garage";
+import TurnstileWidget, { turnstileEnabled } from "@/components/TurnstileWidget";
+
+const noopSubscribe = () => () => {};
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    subject: QUOTE_SUBJECTS[0].label,
     message: "",
   });
 
+  // Pré-sélection de l'objet via ?devis=… (« Demander un devis E85 », etc.), sans setState dans un effet
+  const search = useSyncExternalStore(noopSubscribe, () => window.location.search, () => "");
+  const urlSubject = QUOTE_SUBJECTS.find((q) => q.key === new URLSearchParams(search).get("devis"))?.label;
+  const [subjectChoice, setSubjectChoice] = useState<string | null>(null);
+  const subject = subjectChoice ?? urlSubject ?? QUOTE_SUBJECTS[0].label;
+
   const [honeypot, setHoneypot] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pré-sélection automatique de l'objet lorsque le visiteur clique sur « Demander un devis E85 », etc.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const devisKey = params.get("devis");
-    if (devisKey) {
-      const found = QUOTE_SUBJECTS.find((q) => q.key === devisKey);
-      if (found) {
-        setFormData((prev) => ({ ...prev, subject: found.label }));
-      }
-    }
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Merci de valider la vérification anti-robot.");
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
 
@@ -42,7 +44,9 @@ export default function ContactForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          subject,
           website_trap: honeypot,
+          turnstileToken,
         }),
       });
 
@@ -52,17 +56,15 @@ export default function ContactForm() {
       }
 
       setSuccess(true);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        subject: QUOTE_SUBJECTS[0].label,
-        message: "",
-      });
+      setFormData({ name: "", email: "", phone: "", message: "" });
+      setSubjectChoice(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur de connexion";
       setError(msg);
     } finally {
+      // Un jeton Turnstile n'est valable qu'une fois
+      setTurnstileToken("");
+      setTurnstileReset((n) => n + 1);
       setIsSubmitting(false);
     }
   };
@@ -161,8 +163,8 @@ export default function ContactForm() {
               Objet de votre demande
             </label>
             <select
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              value={subject}
+              onChange={(e) => setSubjectChoice(e.target.value)}
               className="w-full bg-glacier border border-aluminium rounded-xl px-4 py-3 text-sm text-carbone focus:outline-none focus:bg-white focus:border-racing"
             >
               {QUOTE_SUBJECTS.map((s) => (
@@ -186,6 +188,17 @@ export default function ContactForm() {
               className="w-full bg-glacier border border-aluminium rounded-xl px-4 py-3 text-sm text-carbone placeholder-technique/60 focus:outline-none focus:bg-white focus:border-racing"
             />
           </div>
+
+          <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileReset} />
+
+          <p className="text-[11px] leading-relaxed text-technique">
+            Les informations saisies sont utilisées uniquement par Run Auto pour répondre à votre demande et
+            conservées 3 ans au maximum. Vous pouvez y accéder, les rectifier ou les faire supprimer à tout moment.{" "}
+            <Link href="/politique-confidentialite" className="underline hover:text-racing">
+              En savoir plus sur vos données
+            </Link>
+            .
+          </p>
 
           <button
             type="submit"

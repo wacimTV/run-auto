@@ -60,3 +60,41 @@ CREATE TABLE IF NOT EXISTS public.blocked_dates (
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blocked_dates ENABLE ROW LEVEL SECURITY;
+
+-- 4. Limitation des requêtes (anti-spam formulaires + anti force brute admin)
+-- Les clés sont des empreintes SHA-256 : aucune IP ni e-mail stocké en clair.
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    key TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0,
+    window_start TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- Incrémente atomiquement le compteur et renvoie TRUE si la requête est autorisée.
+CREATE OR REPLACE FUNCTION public.hit_rate_limit(p_key TEXT, p_max INTEGER, p_window_seconds INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    INSERT INTO public.rate_limits AS r (key, count, window_start)
+    VALUES (p_key, 1, NOW())
+    ON CONFLICT (key) DO UPDATE SET
+        count = CASE WHEN r.window_start < NOW() - make_interval(secs => p_window_seconds) THEN 1 ELSE r.count + 1 END,
+        window_start = CASE WHEN r.window_start < NOW() - make_interval(secs => p_window_seconds) THEN NOW() ELSE r.window_start END
+    RETURNING count INTO v_count;
+
+    -- Nettoyage occasionnel des compteurs expirés (1 appel sur 50 environ)
+    IF random() < 0.02 THEN
+        DELETE FROM public.rate_limits WHERE window_start < NOW() - INTERVAL '2 days';
+    END IF;
+
+    RETURN v_count <= p_max;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.hit_rate_limit(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.hit_rate_limit(TEXT, INTEGER, INTEGER) TO service_role;

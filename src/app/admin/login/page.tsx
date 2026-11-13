@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Lock, Key, AlertCircle, Loader2 } from "lucide-react";
+import { Key, AlertCircle, Loader2 } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
@@ -41,9 +42,13 @@ export default function AdminLoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center bg-glacier px-4 py-16">
       <div className="w-full max-w-md p-8 rounded-2xl bg-white border border-aluminium shadow-[0_14px_40px_-10px_rgba(23,25,29,0.07)] space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-racing-soft border border-racing/25 flex items-center justify-center text-racing mx-auto">
-            <Lock className="w-6 h-6" />
-          </div>
+          <Image
+            src="/images/logo-run-auto.png"
+            alt="Logo Run Auto Marseille"
+            width={150}
+            height={66}
+            className="h-14 w-auto object-contain mx-auto mb-2"
+          />
           <h1 className="text-2xl font-bold text-carbone font-display">Espace Gestion Atelier</h1>
           <p className="text-xs text-technique">
             Accès sécurisé réservé au responsable du garage Run Auto.

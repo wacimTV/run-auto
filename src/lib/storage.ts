@@ -1,7 +1,8 @@
 import "server-only";
 import fs from "fs";
 import path from "path";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { Appointment, ContactMessage } from "@/types";
 
 /**
@@ -363,13 +364,10 @@ let backend: StorageBackend | null = null;
 function getBackend(): StorageBackend {
   if (backend) return backend;
 
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const db = getSupabaseAdmin();
 
-  if (url && key) {
-    backend = supabaseBackend(
-      createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-    );
+  if (db) {
+    backend = supabaseBackend(db);
   } else if (process.env.VERCEL) {
     // Sur Vercel le disque n'est pas persistant : on refuse plutôt que de perdre des rendez-vous.
     throw new Error(

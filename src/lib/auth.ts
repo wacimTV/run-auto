@@ -119,32 +119,5 @@ export function validatePassword(password: string): boolean {
   return safeEqual(password, expected);
 }
 
-/* ------------------------------------------------------------------ */
-/* Limitation des tentatives de connexion (best effort, en mémoire)    */
-/* ------------------------------------------------------------------ */
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
-const loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
-
-export function isLoginRateLimited(ip: string): boolean {
-  const entry = loginAttempts.get(ip);
-  if (!entry) return false;
-  if (Date.now() - entry.firstAttempt > WINDOW_MS) {
-    loginAttempts.delete(ip);
-    return false;
-  }
-  return entry.count >= MAX_ATTEMPTS;
-}
-
-export function registerFailedLogin(ip: string): void {
-  const entry = loginAttempts.get(ip);
-  if (!entry || Date.now() - entry.firstAttempt > WINDOW_MS) {
-    loginAttempts.set(ip, { count: 1, firstAttempt: Date.now() });
-  } else {
-    entry.count += 1;
-  }
-}
-
-export function resetLoginAttempts(ip: string): void {
-  loginAttempts.delete(ip);
-}
+// La limitation des tentatives de connexion est gérée par src/lib/rateLimit.ts
+// (compteur partagé dans Supabase, efficace sur Vercel).

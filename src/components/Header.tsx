@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Phone, Calendar, Menu, X, Cpu, MapPin, Fuel } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
@@ -106,19 +107,21 @@ export default function Header() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
-          {/* Logo Run Auto : Noir Carbone (#17191D) & Rouge Racing (#D71920) */}
-          <Link href="/" className="flex items-center gap-3.5 group shrink-0">
-            <div className="relative w-10 h-10 rounded-lg bg-carbone border border-carbone flex items-center justify-center shadow-xs group-hover:bg-racing group-hover:border-racing transition-all duration-300">
-              <span className="text-white font-black tracking-tighter text-lg font-display italic">
-                R
+          {/* Logo Officiel Run Auto */}
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
+            <Image
+              src="/images/logo-run-auto.png"
+              alt="Logo Run Auto Marseille"
+              width={140}
+              height={61}
+              priority
+              className="h-12 sm:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+            />
+            <div className="hidden sm:flex flex-col border-l border-aluminium pl-3">
+              <span className="text-[10px] tracking-[0.2em] text-carbone uppercase font-bold leading-tight">
+                Marseille 13004
               </span>
-              <span className="absolute bottom-0 left-1.5 right-1.5 h-[2px] bg-racing group-hover:bg-white transition-colors" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-extrabold tracking-[0.16em] text-carbone uppercase font-display leading-none">
-                RUN <span className="text-racing">AUTO</span>
-              </span>
-              <span className="text-[10px] tracking-[0.22em] text-technique uppercase mt-1 font-semibold">
+              <span className="text-[10px] tracking-[0.18em] text-technique uppercase mt-0.5 font-semibold">
                 E85 • Reprog • Électronique
               </span>
             </div>
