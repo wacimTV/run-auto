@@ -3,6 +3,7 @@ import HeroSection from "@/components/HeroSection";
 import HomeSpecialtySections from "@/components/HomeSpecialtySections";
 import GaragePresentation from "@/components/GaragePresentation";
 import ServicesCatalogue from "@/components/ServicesCatalogue";
+import OffersSection from "@/components/OffersSection";
 import BookingWizard from "@/components/BookingWizard";
 import ReviewsSection from "@/components/ReviewsSection";
 import OpeningHoursAndMap from "@/components/OpeningHoursAndMap";
@@ -10,8 +11,16 @@ import FAQSection from "@/components/FAQSection";
 import Link from "next/link";
 import { Phone, Calendar, Sparkles, FileText } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { storage } from "@/lib/storage";
 
-export default function HomePage() {
+export default async function HomePage() {
+  let siteState;
+  try {
+    siteState = await storage.getSiteAdminState();
+  } catch {
+    siteState = undefined;
+  }
+
   return (
     <>
       {/* 2–4. Hero immersif lumineux : positionnement Reprogrammation / Bioéthanol E85 / Électronique + CTAs */}
@@ -23,34 +32,39 @@ export default function HomePage() {
       {/* Catalogue filtrable de l'ensemble des prestations */}
       <ServicesCatalogue />
 
+      {/* Forfaits & Offres Atelier configurés dans /admin */}
+      {siteState?.offers ? <OffersSection offers={siteState.offers} /> : null}
+
       {/* 13. Présentation de l'atelier et du savoir-faire */}
       <GaragePresentation />
 
       {/* 14. Avis clients et témoignages existants */}
-      <ReviewsSection />
+      <ReviewsSection reviews={siteState?.reviews} settings={siteState?.settings} />
 
       {/* 15. Module de prise de rendez-vous en ligne conservé et intégré */}
-      <section id="reservation" className="py-24 bg-white border-t border-aluminium relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-racing-soft border border-racing/25 text-xs text-racing font-extrabold uppercase tracking-wider mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-racing" />
-              <span>Réservation En Ligne • Confirmation sous 2h ouvrées</span>
+      {siteState?.settings.onlineBookingEnabled !== false ? (
+        <section id="reservation" className="py-24 bg-white border-t border-aluminium relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-racing-soft border border-racing/25 text-xs text-racing font-extrabold uppercase tracking-wider mb-4">
+                <Sparkles className="w-3.5 h-3.5 text-racing" />
+                <span>Réservation En Ligne • Confirmation sous 2h ouvrées</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-extrabold text-carbone mb-4 tracking-tight font-display">
+                Planifiez votre passage à l&apos;atelier
+              </h2>
+              <p className="text-base text-technique">
+                Sélectionnez votre prestation (Bioéthanol E85, reprogrammation, diagnostic électronique, recherche de panne, Solutions FAP ou mécanique), renseignez votre véhicule et choisissez votre créneau.
+              </p>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-carbone mb-4 tracking-tight font-display">
-              Planifiez votre passage à l&apos;atelier
-            </h2>
-            <p className="text-base text-technique">
-              Sélectionnez votre prestation (Bioéthanol E85, reprogrammation, diagnostic électronique, recherche de panne, Solutions FAP ou mécanique), renseignez votre véhicule et choisissez votre créneau.
-            </p>
-          </div>
 
-          <BookingWizard />
-        </div>
-      </section>
+            <BookingWizard />
+          </div>
+        </section>
+      ) : null}
 
       {/* Horaires & Accès Géographique */}
-      <OpeningHoursAndMap />
+      <OpeningHoursAndMap settings={siteState?.settings} hours={siteState?.hours} />
 
       {/* FAQ */}
       <FAQSection />

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 /**
@@ -92,6 +93,12 @@ export async function verifyAdminSession(): Promise<boolean> {
   const session = cookieStore.get(ADMIN_COOKIE_NAME);
   if (!session?.value) return false;
   return isTokenValid(session.value);
+}
+
+/** À appeler en tête de chaque page et Server Action admin. */
+export async function requireAdmin(): Promise<void> {
+  const ok = await verifyAdminSession();
+  if (!ok) redirect("/admin/login");
 }
 
 export async function setAdminSession(): Promise<boolean> {

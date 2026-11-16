@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.appointments (
     preferred_contact TEXT DEFAULT 'phone',
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'in_progress', 'ready', 'cancelled', 'completed')),
     internal_notes TEXT,
     ip_address TEXT
 );
@@ -54,6 +54,14 @@ CREATE TABLE IF NOT EXISTS public.blocked_dates (
     reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- 3bis. Table de configuration dynamique de l'atelier (horaires, tarifs, forfaits, galerie, avis, réglages)
+CREATE TABLE IF NOT EXISTS public.site_settings (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 
 -- Activation de Row Level Security (RLS) sans aucune politique publique :
 -- seul le serveur Next.js (clé service_role, jamais exposée au navigateur) peut lire et écrire.
@@ -98,3 +106,9 @@ $$;
 
 REVOKE ALL ON FUNCTION public.hit_rate_limit(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.hit_rate_limit(TEXT, INTEGER, INTEGER) TO service_role;
+
+-- 5. Espace de stockage privé des photos envoyées depuis l'admin
+-- (créé aussi automatiquement par le site au premier envoi de photo)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('uploads', 'uploads', false, 8388608, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
+ON CONFLICT (id) DO NOTHING;

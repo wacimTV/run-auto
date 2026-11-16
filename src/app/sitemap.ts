@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { SITE_URL } from "@/config/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://runauto-marseille.fr";
+  const baseUrl = SITE_URL;
 
   const staticRoutes = [
     "",

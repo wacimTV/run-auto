@@ -5,6 +5,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MobileActionBar from "@/components/MobileActionBar";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { SITE_URL, SITE_INDEXABLE, absoluteUrl } from "@/config/site";
+import { storage } from "@/lib/storage";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -28,7 +30,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://runauto-marseille.fr"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default:
       "Run Auto Marseille | Reprogrammation Moteur, Conversion Bioéthanol E85 & Diagnostic Électronique",
@@ -51,12 +53,13 @@ export const metadata: Metadata = {
   authors: [{ name: "Run Auto Marseille" }],
   creator: "Run Auto",
   publisher: "Run Auto",
+  // Pas de référencement tant que le site est sur une adresse de test (.vercel.app)
   robots: {
-    index: true,
-    follow: true,
+    index: SITE_INDEXABLE,
+    follow: SITE_INDEXABLE,
     googleBot: {
-      index: true,
-      follow: true,
+      index: SITE_INDEXABLE,
+      follow: SITE_INDEXABLE,
       "max-video-preview": -1,
       "max-image-preview": "large",
       "max-snippet": -1,
@@ -65,7 +68,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    url: "https://runauto-marseille.fr",
+    url: SITE_URL,
     title: "Run Auto Marseille | Reprogrammation Moteur, Bioéthanol E85 & Électronique Automobile",
     description:
       "Spécialiste reprogrammation moteur, conversion E85, diagnostic électronique avancé, recherche de panne électrique et mécanique générale au 52 boulevard de Roux, 13004 Marseille.",
@@ -87,7 +90,7 @@ export const metadata: Metadata = {
     images: ["/images/hero-performance.jpg"],
   },
   alternates: {
-    canonical: "https://runauto-marseille.fr",
+    canonical: SITE_URL,
   },
 };
 
@@ -97,10 +100,10 @@ const jsonLd = {
   "@type": "AutoRepair",
   name: GARAGE_CONFIG.name,
   description: GARAGE_CONFIG.activity,
-  logo: "https://runauto-marseille.fr/images/logo-run-auto.png",
-  image: "https://runauto-marseille.fr/images/hero-performance.jpg",
-  "@id": "https://runauto-marseille.fr/#garage",
-  url: "https://runauto-marseille.fr",
+  logo: absoluteUrl("/images/logo-run-auto.png"),
+  image: absoluteUrl("/images/hero-performance.jpg"),
+  "@id": absoluteUrl("/#garage"),
+  url: SITE_URL,
   telephone: GARAGE_CONFIG.contact.phoneInternational,
   priceRange: "€€",
   address: {
@@ -133,7 +136,7 @@ const jsonLd = {
         "@type": "Service",
         name: s.title,
         description: s.shortDescription,
-        url: `https://runauto-marseille.fr/prestations/${s.slug}`,
+        url: absoluteUrl(`/prestations/${s.slug}`),
       },
     })),
   },
@@ -143,11 +146,18 @@ const jsonLd = {
   sameAs: [GARAGE_CONFIG.partner.idGaragesUrl],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let siteState;
+  try {
+    siteState = await storage.getSiteAdminState();
+  } catch {
+    siteState = undefined;
+  }
+
   return (
     <html lang="fr" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
       <head>
@@ -157,10 +167,13 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-blanc text-carbone font-sans antialiased selection:bg-racing selection:text-white min-h-screen flex flex-col pb-16 lg:pb-0">
-        <Header />
+        <Header settings={siteState?.settings} hours={siteState?.hours} />
         <main className="flex-1">{children}</main>
-        <Footer />
-        <MobileActionBar />
+        <Footer settings={siteState?.settings} hours={siteState?.hours} />
+        <MobileActionBar
+          phoneDisplay={siteState?.settings.phone}
+          onlineBookingEnabled={siteState?.settings.onlineBookingEnabled}
+        />
       </body>
     </html>
   );

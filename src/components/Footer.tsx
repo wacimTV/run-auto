@@ -1,10 +1,36 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { MapPin, Phone, Mail, Clock, Cpu, ChevronRight, Lock, Fuel } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { DAY_NAMES } from "@/lib/motorisations";
+import { GarageSettings, OpeningHourEntry } from "@/types";
 
-export default function Footer() {
+export default function Footer({
+  settings,
+  hours,
+}: {
+  settings?: GarageSettings;
+  hours?: OpeningHourEntry[];
+}) {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
+  const phoneDisplay = settings?.phone || GARAGE_CONFIG.contact.phoneDisplay;
+  const street = settings?.street || GARAGE_CONFIG.contact.address;
+  const postalCode = settings?.postalCode || GARAGE_CONFIG.contact.postalCode;
+  const city = settings?.city || GARAGE_CONFIG.contact.city;
+  const googleMapsUrl =
+    settings?.googleMapsUrl || GARAGE_CONFIG.contact.googleMapsUrl;
+  const flagshipEquipment =
+    settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
+  const onlineBookingEnabled = settings?.onlineBookingEnabled ?? true;
+
   return (
     <footer className="bg-glacier border-t border-aluminium text-technique pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -27,7 +53,7 @@ export default function Footer() {
 
             <div className="flex items-center gap-2.5 text-xs text-carbone bg-white p-3.5 rounded-xl border border-aluminium shadow-2xs font-medium">
               <Cpu className="w-4 h-4 text-racing shrink-0" />
-              <span>Diagnostic de dernière génération ({GARAGE_CONFIG.equipment.flagshipName}).</span>
+              <span>Diagnostic de dernière génération ({flagshipEquipment}).</span>
             </div>
           </div>
 
@@ -77,21 +103,43 @@ export default function Footer() {
               <span className="w-2 h-2 rounded-full bg-racing" />
               Horaires d&apos;Ouverture
             </h3>
-            <div className="flex flex-col gap-2.5 text-sm">
-              <div className="flex justify-between pb-2.5 border-b border-aluminium">
-                <span className="text-technique">Lundi – Vendredi</span>
-                <span className="text-carbone font-bold">09:00 – 19:00</span>
-              </div>
-              <div className="flex justify-between pb-2.5 border-b border-aluminium text-technique/60">
-                <span>Samedi</span>
-                <span>Fermé</span>
-              </div>
-              <div className="flex justify-between text-technique/60">
-                <span>Dimanche</span>
-                <span>Fermé</span>
-              </div>
+            <div className="flex flex-col gap-2 text-xs">
+              {hours && hours.length > 0 ? (
+                [1, 2, 3, 4, 5, 6, 0].map((d) => {
+                  const h = hours.find((x) => x.dayOfWeek === d);
+                  const isClosed = !h || h.closed;
+                  return (
+                    <div
+                      key={d}
+                      className={`flex justify-between pb-1.5 border-b border-aluminium/70 ${
+                        isClosed ? "text-technique/60" : ""
+                      }`}
+                    >
+                      <span>{DAY_NAMES[d]}</span>
+                      <span className={isClosed ? "" : "text-carbone font-bold"}>
+                        {isClosed ? "Fermé" : `${h.openTime} – ${h.closeTime}`}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  <div className="flex justify-between pb-2.5 border-b border-aluminium">
+                    <span className="text-technique">Lundi – Vendredi</span>
+                    <span className="text-carbone font-bold">09:00 – 19:00</span>
+                  </div>
+                  <div className="flex justify-between pb-2.5 border-b border-aluminium text-technique/60">
+                    <span>Samedi</span>
+                    <span>Fermé</span>
+                  </div>
+                  <div className="flex justify-between text-technique/60">
+                    <span>Dimanche</span>
+                    <span>Fermé</span>
+                  </div>
+                </>
+              )}
 
-              <div className="mt-4 p-3.5 rounded-xl bg-white border border-aluminium shadow-2xs text-xs space-y-2">
+              <div className="mt-3 p-3.5 rounded-xl bg-white border border-aluminium shadow-2xs text-xs space-y-2">
                 <p className="flex items-center gap-2 text-carbone font-semibold">
                   <Clock className="w-3.5 h-3.5 text-racing shrink-0" />
                   Accueil sur rendez-vous
@@ -117,12 +165,12 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-racing shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-carbone font-bold">{GARAGE_CONFIG.contact.address}</p>
+                  <p className="text-carbone font-bold">{street}</p>
                   <p className="text-xs text-technique">
-                    {GARAGE_CONFIG.contact.postalCode} {GARAGE_CONFIG.contact.city}
+                    {postalCode} {city}
                   </p>
                   <a
-                    href={GARAGE_CONFIG.contact.googleMapsUrl}
+                    href={googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-racing hover:underline mt-1 inline-block font-bold"
@@ -135,10 +183,10 @@ export default function Footer() {
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-racing shrink-0" />
                 <a
-                  href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+                  href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
                   className="text-carbone hover:text-racing font-extrabold transition-colors"
                 >
-                  {GARAGE_CONFIG.contact.phoneDisplay}
+                  {phoneDisplay}
                 </a>
               </li>
 
@@ -154,10 +202,16 @@ export default function Footer() {
 
               <li className="pt-2">
                 <Link
-                  href="/prendre-rendez-vous"
+                  href={
+                    onlineBookingEnabled
+                      ? "/prendre-rendez-vous"
+                      : "/contact#formulaire"
+                  }
                   className="btn-racing w-full py-2.5 px-4 rounded-xl text-center text-xs font-bold uppercase tracking-wider block"
                 >
-                  Prendre rendez-vous
+                  {onlineBookingEnabled
+                    ? "Prendre rendez-vous"
+                    : "Demander un devis"}
                 </Link>
               </li>
             </ul>
@@ -187,14 +241,17 @@ export default function Footer() {
             <Link href="/mentions-legales" className="hover:text-carbone transition-colors">
               Mentions légales
             </Link>
-            <Link href="/politique-confidentialite" className="hover:text-carbone transition-colors">
+            <Link
+              href="/politique-confidentialite"
+              className="hover:text-carbone transition-colors"
+            >
               Politique de confidentialité (RGPD)
             </Link>
             <Link href="/faq" className="hover:text-carbone transition-colors">
               FAQ
             </Link>
             <Link
-              href="/admin/login"
+              href="/admin"
               className="text-technique/80 hover:text-racing transition-colors flex items-center gap-1"
             >
               <Lock className="w-3 h-3" />

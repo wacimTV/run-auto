@@ -140,3 +140,78 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
     return false;
   }
 }
+
+/**
+ * Envoie un e-mail au client lorsque le mécanicien met à jour le statut de son véhicule / RDV
+ * (Confirmé, Prêt à restituer, ou Annulé).
+ */
+export async function sendAppointmentStatusEmail(
+  appointment: Appointment,
+  garageName = GARAGE_CONFIG.name
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !appointment.client.email) return true;
+
+  const statusLabels: Record<string, string> = {
+    confirmed: "Rendez-vous confirmé par l'atelier ✅",
+    in_progress: "Véhicule pris en charge sur le pont 🔧",
+    ready: "Intervention terminée — Votre véhicule est prêt à être récupéré 🚗",
+    completed: "Véhicule restitué — Merci de votre confiance",
+    cancelled: "Rendez-vous annulé",
+  };
+
+  const label = statusLabels[appointment.status];
+  if (!label) return true;
+
+  const subject =
+    appointment.status === "confirmed"
+      ? `Rendez-vous confirmé — ${garageName}`
+      : appointment.status === "ready"
+        ? `Votre véhicule ${appointment.vehicle.make} ${appointment.vehicle.model} est prêt — ${garageName}`
+        : `Mise à jour de votre dossier atelier — ${garageName}`;
+
+  const e = {
+    firstName: escapeHtml(appointment.client.firstName),
+    lastName: escapeHtml(appointment.client.lastName),
+    make: escapeHtml(appointment.vehicle.make),
+    model: escapeHtml(appointment.vehicle.model),
+    plate: escapeHtml(appointment.vehicle.licensePlate || "Non renseignée"),
+    service: escapeHtml(appointment.serviceName),
+    date: escapeHtml(appointment.date),
+    time: escapeHtml(appointment.time),
+    statusLabel: escapeHtml(label),
+  };
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: [appointment.client.email],
+        subject,
+        html: `
+          <div style="font-family: sans-serif; background: #17191D; color: #F5F5F5; padding: 30px; border-radius: 12px;">
+            <h2 style="color: #D71920; margin-top: 0;">${escapeHtml(garageName.toUpperCase())} — MARSEILLE</h2>
+            <p>Bonjour ${e.firstName} ${e.lastName},</p>
+            <p>Voici une mise à jour concernant votre véhicule <strong>${e.make} ${e.model}</strong> (${e.plate}) :</p>
+            <div style="background: #22252B; padding: 20px; border-left: 4px solid #D71920; margin: 20px 0; border-radius: 6px;">
+              <p style="margin: 4px 0;"><strong>Statut actuel :</strong> ${e.statusLabel}</p>
+              <p style="margin: 4px 0;"><strong>Intervention :</strong> ${e.service}</p>
+              <p style="margin: 4px 0;"><strong>Créneau :</strong> ${e.date} à ${e.time}</p>
+            </div>
+            <p>Atelier situé au <strong>${escapeHtml(GARAGE_CONFIG.contact.fullAddress)}</strong> • Tél. : <strong>${escapeHtml(GARAGE_CONFIG.contact.phoneDisplay)}</strong>.</p>
+            <p>Cordialement,<br>L'équipe ${escapeHtml(garageName)}</p>
+          </div>
+        `,
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("[EMAIL ERROR] Notification statut RDV:", err);
+    return false;
+  }
+}

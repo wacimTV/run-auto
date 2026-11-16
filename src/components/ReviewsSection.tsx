@@ -1,10 +1,40 @@
 import React from "react";
 import { Star, ShieldCheck, ExternalLink, Award } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { GarageReview, GarageSettings } from "@/types";
 
-export default function ReviewsSection() {
-  const { verifiedAverageRating, reviewCount, sourceName, sourceUrl, notice, criteria, testimonials, lastChecked } =
-    GARAGE_CONFIG.reviewsSummary;
+export default function ReviewsSection({
+  reviews,
+  settings,
+}: {
+  reviews?: GarageReview[];
+  settings?: GarageSettings;
+}) {
+  const {
+    verifiedAverageRating: defaultRating,
+    reviewCount: defaultCount,
+    sourceName,
+    sourceUrl: defaultUrl,
+    notice,
+    criteria,
+    testimonials: defaultTestimonials,
+    lastChecked,
+  } = GARAGE_CONFIG.reviewsSummary;
+
+  const verifiedAverageRating = settings?.verifiedRating ?? defaultRating;
+  const reviewCount = settings?.verifiedReviewCount ?? String(defaultCount);
+  const sourceUrl = settings?.googleReviewUrl || defaultUrl;
+  const idGaragesRef = settings?.idGaragesRef || GARAGE_CONFIG.partner.idGaragesRef;
+  const testimonials =
+    reviews && reviews.length > 0
+      ? reviews.map((r) => ({
+          author: r.author,
+          vehicle: r.vehicle,
+          date: r.date,
+          rating: r.rating,
+          comment: r.comment,
+        }))
+      : defaultTestimonials;
 
   return (
     <section className="py-24 bg-glacier border-t border-aluminium relative">
@@ -35,7 +65,11 @@ export default function ReviewsSection() {
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-4 h-4 ${i < Math.round(verifiedAverageRating) ? "fill-racing" : "fill-aluminium"}`}
+                    className={`w-4 h-4 ${
+                      i < Math.round(verifiedAverageRating)
+                        ? "fill-racing"
+                        : "fill-aluminium"
+                    }`}
                   />
                 ))}
               </div>
@@ -44,9 +78,12 @@ export default function ReviewsSection() {
             <div className="h-12 w-px bg-aluminium hidden sm:block" />
 
             <div>
-              <p className="text-sm font-extrabold text-carbone">{reviewCount} avis clients sur {sourceName}</p>
+              <p className="text-sm font-extrabold text-carbone">
+                {reviewCount} avis clients sur {sourceName}
+              </p>
               <p className="text-xs text-technique">
-                Fiche n° <strong className="text-carbone">{GARAGE_CONFIG.partner.idGaragesRef}</strong> · relevé du {lastChecked}
+                Fiche n° <strong className="text-carbone">{idGaragesRef}</strong> · relevé du{" "}
+                {lastChecked}
               </p>
               <div className="flex items-center gap-1.5 text-[11px] text-racing mt-1 font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-racing" />
@@ -69,7 +106,10 @@ export default function ReviewsSection() {
         {/* Notes détaillées */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-12">
           {criteria.map((c) => (
-            <div key={c.label} className="p-4 rounded-xl bg-white border border-aluminium text-center">
+            <div
+              key={c.label}
+              className="p-4 rounded-xl bg-white border border-aluminium text-center"
+            >
               <p className="text-lg font-extrabold text-carbone font-display">
                 {c.score.toLocaleString("fr-FR", { minimumFractionDigits: 1 })}
                 <span className="text-xs text-racing font-bold"> / 5</span>
@@ -79,25 +119,34 @@ export default function ReviewsSection() {
           ))}
         </div>
 
-        {/* Avis réels (copiés à l'identique depuis la source) */}
+        {/* Avis réels (copiés à l'identique depuis la source ou publiés depuis /admin) */}
         {testimonials.length > 0 && (
           <div className="flex flex-wrap justify-center gap-6">
-            {testimonials.map((testi) => (
+            {testimonials.map((testi, idx) => (
               <figure
-                key={`${testi.author}-${testi.date}`}
+                key={`${testi.author}-${testi.date}-${idx}`}
                 className="w-full md:w-[calc(33.333%-1rem)] p-6 rounded-2xl bg-white border border-aluminium shadow-[0_6px_20px_-4px_rgba(23,25,29,0.04)] flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1 text-racing" aria-label={`${testi.rating} sur 5`}>
+                    <div
+                      className="flex items-center gap-1 text-racing"
+                      aria-label={`${testi.rating} sur 5`}
+                    >
                       {[...Array(5)].map((_, s) => (
                         <Star
                           key={s}
-                          className={`w-3.5 h-3.5 ${s < Math.floor(testi.rating) ? "fill-racing" : "fill-aluminium"}`}
+                          className={`w-3.5 h-3.5 ${
+                            s < Math.floor(testi.rating)
+                              ? "fill-racing"
+                              : "fill-aluminium"
+                          }`}
                         />
                       ))}
                     </div>
-                    <span className="text-[11px] text-technique font-medium">{testi.date}</span>
+                    <span className="text-[11px] text-technique font-medium">
+                      {testi.date}
+                    </span>
                   </div>
                   <blockquote className="text-sm text-carbone italic leading-relaxed mb-6">
                     « {testi.comment} »

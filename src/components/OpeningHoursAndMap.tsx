@@ -2,9 +2,26 @@ import React from "react";
 import Link from "next/link";
 import { Clock, MapPin, Phone, Navigation, Calendar } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { DAY_NAMES } from "@/lib/motorisations";
+import { GarageSettings, OpeningHourEntry } from "@/types";
 import GoogleMapEmbed from "@/components/GoogleMapEmbed";
 
-export default function OpeningHoursAndMap() {
+export default function OpeningHoursAndMap({
+  settings,
+  hours,
+}: {
+  settings?: GarageSettings;
+  hours?: OpeningHourEntry[];
+}) {
+  const street = settings?.street || GARAGE_CONFIG.contact.address;
+  const postalCode = settings?.postalCode || GARAGE_CONFIG.contact.postalCode;
+  const city = settings?.city || GARAGE_CONFIG.contact.city;
+  const phoneDisplay = settings?.phone || GARAGE_CONFIG.contact.phoneDisplay;
+  const googleMapsUrl =
+    settings?.googleMapsUrl || GARAGE_CONFIG.contact.googleMapsUrl;
+  const parkingInfo = settings?.parkingInfo;
+  const transportInfo = settings?.transportInfo;
+
   return (
     <section className="py-24 bg-glacier border-t border-aluminium relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -16,7 +33,7 @@ export default function OpeningHoursAndMap() {
             Venir à l&apos;atelier Run Auto Marseille
           </h2>
           <p className="text-sm text-technique">
-            Facilement accessible dans le 4ème arrondissement de Marseille, au 52 boulevard de Roux (13004).
+            Facilement accessible dans le 4ème arrondissement de Marseille, au {street} ({postalCode}).
           </p>
         </div>
 
@@ -32,27 +49,55 @@ export default function OpeningHoursAndMap() {
                   <h3 className="text-lg font-extrabold text-carbone font-display">
                     Horaires de l&apos;Atelier
                   </h3>
-                  <p className="text-xs text-technique">Ouvert du lundi au vendredi en continu</p>
+                  <p className="text-xs text-technique">Accueil et prise en charge</p>
                 </div>
               </div>
 
               {/* Table des horaires */}
               <div className="space-y-3 mb-8">
-                {GARAGE_CONFIG.openingHours.map((day) => (
-                  <div
-                    key={day.dayName}
-                    className="flex items-center justify-between py-2 border-b border-aluminium text-sm"
-                  >
-                    <span className="font-semibold text-carbone">{day.dayName}</span>
-                    {day.isOpen ? (
-                      <span className="text-carbone font-extrabold text-xs">
-                        {day.slots.map((s) => `${s.open} - ${s.close}`).join(" & ")}
-                      </span>
-                    ) : (
-                      <span className="text-technique/60 text-xs font-medium">Fermé</span>
-                    )}
-                  </div>
-                ))}
+                {hours && hours.length > 0
+                  ? [1, 2, 3, 4, 5, 6, 0].map((d) => {
+                      const entry = hours.find((h) => h.dayOfWeek === d);
+                      const isOpen = entry && !entry.closed;
+                      return (
+                        <div
+                          key={d}
+                          className="flex items-center justify-between py-2 border-b border-aluminium text-sm"
+                        >
+                          <span className="font-semibold text-carbone">
+                            {DAY_NAMES[d]}
+                          </span>
+                          {isOpen ? (
+                            <span className="text-carbone font-extrabold text-xs">
+                              {entry.openTime} - {entry.closeTime}
+                            </span>
+                          ) : (
+                            <span className="text-technique/60 text-xs font-medium">
+                              Fermé
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  : GARAGE_CONFIG.openingHours.map((day) => (
+                      <div
+                        key={day.dayName}
+                        className="flex items-center justify-between py-2 border-b border-aluminium text-sm"
+                      >
+                        <span className="font-semibold text-carbone">
+                          {day.dayName}
+                        </span>
+                        {day.isOpen ? (
+                          <span className="text-carbone font-extrabold text-xs">
+                            {day.slots.map((s) => `${s.open} - ${s.close}`).join(" & ")}
+                          </span>
+                        ) : (
+                          <span className="text-technique/60 text-xs font-medium">
+                            Fermé
+                          </span>
+                        )}
+                      </div>
+                    ))}
               </div>
 
               {/* Coordonnées */}
@@ -60,12 +105,16 @@ export default function OpeningHoursAndMap() {
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-racing shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-carbone">
-                      {GARAGE_CONFIG.contact.address}
-                    </p>
+                    <p className="text-sm font-bold text-carbone">{street}</p>
                     <p className="text-xs text-technique">
-                      {GARAGE_CONFIG.contact.postalCode} {GARAGE_CONFIG.contact.city}, France
+                      {postalCode} {city}, France
                     </p>
+                    {parkingInfo ? (
+                      <p className="text-[11px] text-technique mt-1">{parkingInfo}</p>
+                    ) : null}
+                    {transportInfo ? (
+                      <p className="text-[11px] text-technique mt-0.5">{transportInfo}</p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -73,12 +122,14 @@ export default function OpeningHoursAndMap() {
                   <Phone className="w-5 h-5 text-racing shrink-0" />
                   <div>
                     <a
-                      href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+                      href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
                       className="text-base font-extrabold text-carbone hover:text-racing transition-colors"
                     >
-                      {GARAGE_CONFIG.contact.phoneDisplay}
+                      {phoneDisplay}
                     </a>
-                    <span className="text-[11px] text-technique block">Ligne directe atelier</span>
+                    <span className="text-[11px] text-technique block">
+                      Ligne directe atelier
+                    </span>
                   </div>
                 </div>
               </div>
@@ -87,7 +138,7 @@ export default function OpeningHoursAndMap() {
             {/* Actions rapides */}
             <div className="pt-8 border-t border-aluminium flex flex-col sm:flex-row gap-3">
               <a
-                href={GARAGE_CONFIG.contact.googleMapsUrl}
+                href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline-racing flex-1 py-3 px-4 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2"
@@ -114,7 +165,9 @@ export default function OpeningHoursAndMap() {
               <p className="font-extrabold text-carbone font-display">
                 RUN <span className="text-racing">AUTO</span> MARSEILLE
               </p>
-              <p className="text-[11px] text-technique">52 bd de Roux, 13004 Marseille</p>
+              <p className="text-[11px] text-technique">
+                {street}, {postalCode} {city}
+              </p>
             </div>
           </div>
         </div>

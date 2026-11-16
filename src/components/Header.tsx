@@ -4,14 +4,32 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Phone, Calendar, Menu, X, Cpu, MapPin, Fuel } from "lucide-react";
+import { Phone, Calendar, Menu, X, Cpu, MapPin, Fuel, Megaphone } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { GarageSettings, OpeningHourEntry } from "@/types";
 
-export default function Header() {
+export default function Header({
+  settings,
+  hours,
+}: {
+  settings?: GarageSettings;
+  hours?: OpeningHourEntry[];
+}) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOpenNow, setIsOpenNow] = useState(false);
   const pathname = usePathname();
+
+  const phoneDisplay = settings?.phone || GARAGE_CONFIG.contact.phoneDisplay;
+  const street = settings?.street || GARAGE_CONFIG.contact.address;
+  const postalCode = settings?.postalCode || GARAGE_CONFIG.contact.postalCode;
+  const city = settings?.city || GARAGE_CONFIG.contact.city;
+  const googleMapsUrl =
+    settings?.googleMapsUrl || GARAGE_CONFIG.contact.googleMapsUrl;
+  const flagshipEquipment =
+    settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
+  const announcement = settings?.announcement?.trim() || "";
+  const onlineBookingEnabled = settings?.onlineBookingEnabled ?? true;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,7 +37,6 @@ export default function Header() {
     };
     window.addEventListener("scroll", handleScroll);
 
-    // Calcul de l'état ouvert/fermé en temps réel à Marseille
     const checkOpenStatus = () => {
       const now = new Date();
       const day = now.getDay();
@@ -27,12 +44,23 @@ export default function Header() {
       const min = now.getMinutes();
       const currentTime = hour * 60 + min;
 
-      // Lun-Ven: 09h00 (540m) à 19h00 (1140m) en continu
-      if (day >= 1 && day <= 5) {
-        if (currentTime >= 540 && currentTime < 1140) {
-          setIsOpenNow(true);
+      if (hours && hours.length > 0) {
+        const entry = hours.find((h) => h.dayOfWeek === day);
+        if (!entry || entry.closed) {
+          setIsOpenNow(false);
           return;
         }
+        const [oH, oM] = (entry.openTime || "09:00").split(":").map(Number);
+        const [cH, cM] = (entry.closeTime || "19:00").split(":").map(Number);
+        const openMins = oH * 60 + (oM || 0);
+        const closeMins = cH * 60 + (cM || 0);
+        setIsOpenNow(currentTime >= openMins && currentTime < closeMins);
+        return;
+      }
+
+      if (day >= 1 && day <= 5 && currentTime >= 540 && currentTime < 1140) {
+        setIsOpenNow(true);
+        return;
       }
       setIsOpenNow(false);
     };
@@ -44,11 +72,19 @@ export default function Header() {
       window.removeEventListener("scroll", handleScroll);
       clearInterval(interval);
     };
-  }, []);
+  }, [hours]);
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   const navLinks = [
     { href: "/", label: "Accueil" },
-    { href: "/prestations/conversion-bioethanol-e85", label: "Bioéthanol E85", highlightE85: true },
+    {
+      href: "/prestations/conversion-bioethanol-e85",
+      label: "Bioéthanol E85",
+      highlightE85: true,
+    },
     { href: "/prestations/reprogrammation-moteur", label: "Reprogrammation" },
     { href: "/prestations", label: "Prestations" },
     { href: "/le-garage", label: "L'Atelier" },
@@ -57,6 +93,16 @@ export default function Header() {
 
   return (
     <>
+      {/* Bandeau d'annonce administrateur (si renseigné dans /admin) */}
+      {announcement ? (
+        <div className="bg-racing text-white text-xs font-bold py-2 px-4 text-center">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
+            <Megaphone className="w-3.5 h-3.5 shrink-0" />
+            <span>{announcement}</span>
+          </div>
+        </div>
+      ) : null}
+
       {/* Barre supérieure Gris Glacier (#F2F4F6) et bordure Gris Aluminium (#E2E6EA) */}
       <div className="bg-glacier border-b border-aluminium text-xs py-2 px-4 sm:px-8 text-technique hidden md:block">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -68,31 +114,30 @@ export default function Header() {
                 }`}
               />
               {isOpenNow
-                ? "Atelier ouvert (Lun–Ven 09:00–19:00)"
-                : "Atelier fermé (ouvre Lun–Ven à 09h00)"}
+                ? "Atelier ouvert actuellement"
+                : "Atelier fermé actuellement"}
             </span>
             <a
-              href={GARAGE_CONFIG.contact.googleMapsUrl}
+              href={googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 hover:text-racing transition-colors"
             >
               <MapPin className="w-3.5 h-3.5 text-racing" />
-              {GARAGE_CONFIG.contact.address}, {GARAGE_CONFIG.contact.postalCode}{" "}
-              {GARAGE_CONFIG.contact.city}
+              {street}, {postalCode} {city}
             </a>
           </div>
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-1.5 text-carbone font-semibold">
               <Cpu className="w-3.5 h-3.5 text-racing" />
-              Équipé {GARAGE_CONFIG.equipment.flagshipName}
+              Équipé {flagshipEquipment}
             </span>
             <a
-              href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+              href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
               className="flex items-center gap-1.5 text-carbone hover:text-racing font-bold transition-colors"
             >
               <Phone className="w-3.5 h-3.5 text-racing" />
-              {GARAGE_CONFIG.contact.phoneDisplay}
+              {phoneDisplay}
             </a>
           </div>
         </div>
@@ -119,7 +164,7 @@ export default function Header() {
             />
             <div className="hidden sm:flex flex-col border-l border-aluminium pl-3">
               <span className="text-[10px] tracking-[0.2em] text-carbone uppercase font-bold leading-tight">
-                Marseille 13004
+                {city} {postalCode}
               </span>
               <span className="text-[10px] tracking-[0.18em] text-technique uppercase mt-0.5 font-semibold">
                 E85 • Reprog • Électronique
@@ -145,7 +190,9 @@ export default function Header() {
                       : "text-carbone/85 hover:text-racing"
                   }`}
                 >
-                  {link.highlightE85 && <Fuel className="w-3.5 h-3.5 text-e85" />}
+                  {link.highlightE85 && (
+                    <Fuel className="w-3.5 h-3.5 text-e85" />
+                  )}
                   <span>{link.label}</span>
                   {isActive && (
                     <span
@@ -162,20 +209,30 @@ export default function Header() {
           {/* Actions Desktop */}
           <div className="hidden lg:flex items-center gap-3 shrink-0">
             <a
-              href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+              href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
               className="btn-outline-racing flex items-center gap-2 text-xs px-3.5 py-2.5 rounded-xl"
             >
               <Phone className="w-3.5 h-3.5 text-racing" />
-              <span>{GARAGE_CONFIG.contact.phoneDisplay}</span>
+              <span>{phoneDisplay}</span>
             </a>
 
-            <Link
-              href="/prendre-rendez-vous"
-              className="btn-racing px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 font-bold"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Prendre rendez-vous</span>
-            </Link>
+            {onlineBookingEnabled ? (
+              <Link
+                href="/prendre-rendez-vous"
+                className="btn-racing px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 font-bold"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Prendre rendez-vous</span>
+              </Link>
+            ) : (
+              <Link
+                href="/contact#formulaire"
+                className="btn-racing px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 font-bold"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Demander un devis</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -184,7 +241,11 @@ export default function Header() {
             className="xl:hidden p-2.5 rounded-xl text-carbone bg-glacier border border-aluminium hover:border-racing focus:outline-none transition-colors"
             aria-label="Menu principal"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
         </div>
       </header>
@@ -207,43 +268,49 @@ export default function Header() {
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    {link.highlightE85 && <Fuel className="w-4 h-4 text-e85" />}
+                    {link.highlightE85 && (
+                      <Fuel className="w-4 h-4 text-e85" />
+                    )}
                     {link.label}
                   </span>
                   <span className="text-xs text-racing font-bold">→</span>
                 </Link>
               );
             })}
-            <Link
-              href="/prendre-rendez-vous"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-3.5 px-4 rounded-xl border border-aluminium bg-glacier text-carbone font-semibold flex items-center justify-between"
-            >
-              <span>Réservation en ligne</span>
-              <span className="text-xs text-racing font-bold">→</span>
-            </Link>
+            {onlineBookingEnabled && (
+              <Link
+                href="/prendre-rendez-vous"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-3.5 px-4 rounded-xl border border-aluminium bg-glacier text-carbone font-semibold flex items-center justify-between"
+              >
+                <span>Réservation en ligne</span>
+                <span className="text-xs text-racing font-bold">→</span>
+              </Link>
+            )}
           </nav>
 
           <div className="flex flex-col gap-3 pt-6 border-t border-aluminium mt-6">
             <a
-              href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+              href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
               className="btn-outline-racing flex items-center justify-center gap-2 text-sm py-3.5 rounded-xl"
             >
               <Phone className="w-4 h-4 text-racing" />
-              <span>Appeler le {GARAGE_CONFIG.contact.phoneDisplay}</span>
+              <span>Appeler le {phoneDisplay}</span>
             </a>
 
             <Link
-              href="/prendre-rendez-vous"
+              href={onlineBookingEnabled ? "/prendre-rendez-vous" : "/contact#formulaire"}
               onClick={() => setMobileMenuOpen(false)}
               className="btn-racing text-center py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2"
             >
               <Calendar className="w-4 h-4" />
-              <span>Prendre rendez-vous</span>
+              <span>
+                {onlineBookingEnabled ? "Prendre rendez-vous" : "Demander un devis"}
+              </span>
             </Link>
 
             <p className="text-xs text-center text-technique mt-1">
-              52 boulevard de Roux, 13004 Marseille • Lun–Ven 09:00–19:00
+              {street}, {postalCode} {city}
             </p>
           </div>
         </div>

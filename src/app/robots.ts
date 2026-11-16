@@ -1,6 +1,12 @@
 import { MetadataRoute } from "next";
+import { SITE_INDEXABLE, absoluteUrl } from "@/config/site";
 
 export default function robots(): MetadataRoute.Robots {
+  // Adresse de test (.vercel.app) : aucun référencement
+  if (!SITE_INDEXABLE) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] };
+  }
+
   return {
     rules: [
       {
@@ -9,6 +15,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin", "/api/"],
       },
     ],
-    sitemap: "https://runauto-marseille.fr/sitemap.xml",
+    sitemap: absoluteUrl("/sitemap.xml"),
   };
 }
