@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { getSiteData } from "@/lib/siteData";
 
 export const metadata: Metadata = {
   title: "Politique de Confidentialité & RGPD | Run Auto Marseille",
@@ -11,8 +12,10 @@ const CARD =
   "space-y-4 p-6 rounded-2xl bg-white border border-aluminium shadow-[0_8px_24px_-6px_rgba(23,25,29,0.04)]";
 const H2 = "text-xl font-bold text-carbone font-display";
 
-export default function PolitiqueConfidentialitePage() {
-  const { legal, contact, processors } = GARAGE_CONFIG;
+export default async function PolitiqueConfidentialitePage() {
+  const { legal, processors } = GARAGE_CONFIG;
+  const { settings } = await getSiteData();
+  const dpoEmail = settings.email || legal.donneesPersonnellesDPO;
 
   return (
     <div className="pt-12 pb-24 bg-glacier text-technique">
@@ -34,7 +37,7 @@ export default function PolitiqueConfidentialitePage() {
           <p className="text-sm leading-relaxed">
             {legal.raisonSociale}, {legal.formeJuridique} immatriculée sous le SIREN {legal.siren}, dont le siège est situé{" "}
             {legal.siegeSocial}, représentée par {legal.directeurPublication}. Contact :{" "}
-            <strong className="text-carbone">{legal.donneesPersonnellesDPO}</strong> · {contact.phoneDisplay}.
+            <strong className="text-carbone">{dpoEmail}</strong> · {settings.phone}.
           </p>
         </section>
 
@@ -86,7 +89,7 @@ export default function PolitiqueConfidentialitePage() {
           <h2 className={H2}>5. Vos droits</h2>
           <p className="text-sm leading-relaxed">
             Vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement, de limitation, d&apos;opposition et de portabilité de vos données.
-            Pour l&apos;exercer, écrivez à <strong className="text-carbone">{legal.donneesPersonnellesDPO}</strong> ou par courrier au {legal.siegeSocial}.
+            Pour l&apos;exercer, écrivez à <strong className="text-carbone">{dpoEmail}</strong> ou par courrier au {legal.siegeSocial}.
             Nous répondons dans un délai d&apos;un mois. Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr).
           </p>
         </section>

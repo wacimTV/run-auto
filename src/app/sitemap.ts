@@ -1,9 +1,10 @@
 import { MetadataRoute } from "next";
-import { GARAGE_CONFIG } from "@/config/garage";
 import { SITE_URL } from "@/config/site";
+import { getSiteData } from "@/lib/siteData";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
+  const { services } = await getSiteData();
 
   const staticRoutes = [
     "",
@@ -16,14 +17,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/politique-confidentialite",
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date("2026-10-27"),
+    lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: route === "" ? 1.0 : 0.8,
   }));
 
-  const serviceRoutes = GARAGE_CONFIG.services.map((service) => ({
+  const serviceRoutes = services.map((service) => ({
     url: `${baseUrl}/prestations/${service.slug}`,
-    lastModified: new Date("2026-10-27"),
+    lastModified: new Date(),
     changeFrequency: "monthly" as const,
     priority: 0.9,
   }));

@@ -15,22 +15,48 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { GARAGE_CONFIG } from "@/config/garage";
-import { DayAvailability } from "@/types";
+import { DayAvailability, GarageSettings, OpeningHourEntry } from "@/types";
+import type { BookingService } from "@/lib/siteData";
 import TurnstileWidget, { turnstileEnabled } from "@/components/TurnstileWidget";
 
 interface BookingWizardProps {
   initialServiceId?: string;
+  services: BookingService[];
+  settings?: GarageSettings;
+  hours?: OpeningHourEntry[];
 }
 
-export default function BookingWizard({ initialServiceId }: BookingWizardProps) {
+export default function BookingWizard({
+  initialServiceId,
+  services,
+  settings,
+  hours,
+}: BookingWizardProps) {
+  const phoneDisplay = settings?.phone || GARAGE_CONFIG.contact.phoneDisplay;
+  const fullAddress = settings
+    ? `${settings.street}, ${settings.postalCode} ${settings.city}`
+    : GARAGE_CONFIG.contact.fullAddress;
+
+  const isDayClosed = (dayOfWeek: number) => {
+    if (hours && hours.length > 0) {
+      const entry = hours.find((h) => h.dayOfWeek === dayOfWeek);
+      return !entry || entry.closed;
+    }
+    return dayOfWeek === 0 || dayOfWeek === 6;
+  };
+
   // Steps: 1 = Service, 2 = Vehicle, 3 = Client, 4 = Date & Time, 5 = Review & Submit, 6 = Success
   const [currentStep, setCurrentStep] = useState(1);
 
+  const initialIsCustom = initialServiceId === "custom";
+  const initialValidService =
+    !initialIsCustom && services.some((s) => s.id === initialServiceId)
+      ? initialServiceId!
+      : services[0]?.id ?? "";
+
   // Form State
-  const [selectedServiceId, setSelectedServiceId] = useState<string>(
-    initialServiceId || GARAGE_CONFIG.services[0].id
-  );
-  const [isCustomService, setIsCustomService] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(initialValidService);
+  const [isCustomService, setIsCustomService] = useState(initialIsCustom || services.length === 0);
   const [problemDescription, setProblemDescription] = useState("");
 
   const [vehicle, setVehicle] = useState({
@@ -51,9 +77,9 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
 
   // Date and slots state (première date ouvrée disponible pré-sélectionnée)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 14; i++) {
       const d = addDays(new Date(), i);
-      if (d.getDay() !== 0 && d.getDay() !== 6) return format(d, "yyyy-MM-dd");
+      if (!isDayClosed(d.getDay())) return format(d, "yyyy-MM-dd");
     }
     return "";
   });
@@ -87,7 +113,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
       dayOfWeek: d.getDay(),
       displayDate: format(d, "EEE d MMM", { locale: fr }),
       fullDate: format(d, "EEEE d MMMM yyyy", { locale: fr }),
-      isWeekend: d.getDay() === 0 || d.getDay() === 6,
+      isWeekend: isDayClosed(d.getDay()),
     };
   });
 
@@ -135,7 +161,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
 
   const getSelectedServiceName = () => {
     if (isCustomService) return "Demande sur-mesure / Diagnostic approfondi";
-    const s = GARAGE_CONFIG.services.find((item) => item.id === selectedServiceId);
+    const s = services.find((item) => item.id === selectedServiceId);
     return s ? s.title : "Prestation sélectionnée";
   };
 
@@ -254,7 +280,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {GARAGE_CONFIG.services.map((srv) => {
+            {services.map((srv) => {
               const isSelected = !isCustomService && selectedServiceId === srv.id;
               const isE85 = srv.slug === "conversion-bioethanol-e85";
               return (
@@ -292,9 +318,9 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                       isE85 ? "text-e85" : "text-racing"
                     }`}
                   >
-                    <span>{srv.priceNotice}</span>
+                    <span>{srv.displayPrice}</span>
                     <span className="text-technique font-medium">
-                      Durée estimée : ~{srv.estimatedDurationMinutes} min
+                      {srv.durationLabel || `Durée estimée : ~${srv.estimatedDurationMinutes} min`}
                     </span>
                   </div>
                 </div>
@@ -626,7 +652,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               </div>
             ) : slotsError?.date === selectedDate ? (
               <div className="p-6 rounded-xl bg-racing-soft border border-racing/30 text-center text-sm text-racing">
-                {slotsError.message} Vous pouvez aussi nous appeler au {GARAGE_CONFIG.contact.phoneDisplay}.
+                {slotsError.message} Vous pouvez aussi nous appeler au {phoneDisplay}.
               </div>
             ) : availability && !availability.isOpen ? (
               <div className="p-6 rounded-xl bg-glacier border border-aluminium text-center text-sm text-technique">
@@ -851,7 +877,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
             </div>
             <div className="flex justify-between">
               <span className="text-technique">Lieu :</span>
-              <span className="text-carbone">52 bd de Roux, 13004 Marseille</span>
+              <span className="text-carbone">{fullAddress}</span>
             </div>
           </div>
 
@@ -870,10 +896,10 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               Faire une autre demande
             </button>
             <a
-              href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+              href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
               className="text-xs font-semibold text-carbone bg-glacier border border-aluminium px-6 py-2.5 rounded-xl hover:border-racing/40 transition-colors"
             >
-              Joindre l&apos;atelier en direct ({GARAGE_CONFIG.contact.phoneDisplay})
+              Joindre l&apos;atelier en direct ({phoneDisplay})
             </a>
           </div>
         </div>

@@ -1,14 +1,18 @@
-"use client";
-
-import React, { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React from "react";
+import Link from "next/link";
 import BookingWizard from "@/components/BookingWizard";
-import { Calendar, ShieldCheck, Phone, Clock, Loader2 } from "lucide-react";
-import { GARAGE_CONFIG } from "@/config/garage";
+import { Calendar, ShieldCheck, Phone, Clock, FileText } from "lucide-react";
+import { getSiteData, toBookingServices } from "@/lib/siteData";
 
-function BookingContent() {
-  const searchParams = useSearchParams();
-  const serviceId = searchParams.get("service") || undefined;
+export default async function PrendreRendezVousPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>;
+}) {
+  const [{ service: serviceId }, { services, settings, hours }] = await Promise.all([
+    searchParams,
+    getSiteData(),
+  ]);
 
   return (
     <div className="pt-12 pb-24 bg-glacier">
@@ -22,12 +26,38 @@ function BookingContent() {
             Prendre Rendez-vous à l&apos;Atelier
           </h1>
           <p className="text-sm text-technique">
-            Complétez les 5 étapes simples ci-dessous pour réserver votre créneau chez Run Auto Marseille (13004). Confirmation garantie sous 2h ouvrées.
+            Complétez les 5 étapes simples ci-dessous pour réserver votre créneau chez {settings.name} {settings.city} ({settings.postalCode}). Confirmation garantie sous 2h ouvrées.
           </p>
         </div>
 
-        {/* Wizard */}
-        <BookingWizard initialServiceId={serviceId} />
+        {settings.onlineBookingEnabled ? (
+          <BookingWizard
+            initialServiceId={serviceId}
+            services={toBookingServices(services)}
+            settings={settings}
+            hours={hours}
+          />
+        ) : (
+          <div className="max-w-2xl mx-auto rounded-2xl bg-white border border-aluminium p-8 text-center space-y-4 shadow-sm">
+            <p className="text-base font-bold text-carbone">
+              La prise de rendez-vous en ligne est momentanément désactivée.
+            </p>
+            <p className="text-sm text-technique">
+              Appelez-nous directement au{" "}
+              <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="font-bold text-racing underline">
+                {settings.phone}
+              </a>{" "}
+              ou envoyez votre demande via notre formulaire de devis.
+            </p>
+            <Link
+              href="/contact#formulaire"
+              className="btn-racing inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Demander un devis</span>
+            </Link>
+          </div>
+        )}
 
         {/* Reassurance notes below wizard */}
         <div className="max-w-4xl mx-auto mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-technique">
@@ -45,25 +75,11 @@ function BookingContent() {
             <Phone className="w-5 h-5 text-racing shrink-0" />
             <span>
               Une urgence immédiate ? Joignez l&apos;atelier en direct au{" "}
-              <strong className="text-carbone">{GARAGE_CONFIG.contact.phoneDisplay}</strong>.
+              <strong className="text-carbone">{settings.phone}</strong>.
             </span>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function PrendreRendezVousPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-[60vh] flex items-center justify-center text-racing">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      }
-    >
-      <BookingContent />
-    </Suspense>
   );
 }

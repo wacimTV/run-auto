@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { getSiteData } from "@/lib/siteData";
+import GallerySection from "@/components/GallerySection";
 import {
   CheckCircle2,
   Calendar,
@@ -21,37 +23,46 @@ export const metadata: Metadata = {
     "Découvrez l'atelier Run Auto au 52 boulevard de Roux (13004 Marseille) : équipements de diagnostic de dernière génération TOPDON Phoenix Max, recherche de pannes sur schémas électriques, reprogrammation moteur, conversion E85 et mécanique.",
 };
 
-export default function LeGaragePage() {
+export default async function LeGaragePage() {
+  const { settings, gallery } = await getSiteData();
+  const workshopImg = settings.workshopImage?.trim() || "/images/diagnostic-tool-light.jpg";
+
   return (
     <div className="pt-12 pb-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         {/* Header */}
         <div className="max-w-3xl mb-16">
           <span className="text-xs font-extrabold tracking-widest uppercase text-racing mb-2 block">
-            Atelier Spécialisé • Marseille 13004
+            Atelier Spécialisé • {settings.city} {settings.postalCode}
           </span>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-carbone mb-6 font-display">
-            L&apos;Atelier Run Auto à Marseille
+            L&apos;Atelier {settings.name} à {settings.city}
           </h1>
           <p className="text-base text-technique leading-relaxed">
-            Situé au <strong>52 boulevard de Roux dans le 4ème arrondissement de Marseille</strong>, Run Auto est un atelier spécialisé dans l&apos;adaptation au bioéthanol E85, la reprogrammation moteur, l&apos;électronique automobile, la recherche de pannes complexes sur schémas électriques et la mécanique générale.
+            Situé au <strong>{settings.street} à {settings.city} ({settings.postalCode})</strong>, {settings.name} est un atelier spécialisé dans l&apos;adaptation au bioéthanol E85, la reprogrammation moteur, l&apos;électronique automobile, la recherche de pannes complexes sur schémas électriques et la mécanique générale.
           </p>
+          {settings.supportedBrands ? (
+            <p className="mt-4 inline-block text-xs font-semibold text-carbone bg-glacier border border-aluminium rounded-xl px-4 py-2.5">
+              {settings.supportedBrands}
+            </p>
+          ) : null}
         </div>
 
         {/* Cinematic Atelier Visual and Narrative */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-24">
           <div className="lg:col-span-6 relative h-[440px] rounded-3xl overflow-hidden border border-aluminium shadow-lg">
             <Image
-              src="/images/diagnostic-tool-light.jpg"
-              alt="Station de diagnostic TOPDON Phoenix Max et atelier électronique Run Auto Marseille"
+              src={workshopImg}
+              alt={`Station de diagnostic ${settings.flagshipEquipment} et atelier électronique ${settings.name} ${settings.city}`}
               fill
+              unoptimized={workshopImg.startsWith("/api/")}
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-carbone/20 via-transparent to-transparent" />
             <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium text-xs shadow-md">
               <p className="font-extrabold text-carbone">
-                Station {GARAGE_CONFIG.equipment.flagshipName} &amp; Schémas Constructeur
+                Station {settings.flagshipEquipment} &amp; Schémas Constructeur
               </p>
               <p className="text-technique text-[11px] mt-0.5">
                 Communication calculateurs, codage, paramétrage et mesures électriques ciblées.
@@ -67,7 +78,7 @@ export default function LeGaragePage() {
               Identifier la cause réelle plutôt que remplacer au hasard
             </h2>
             <p className="text-sm text-technique leading-relaxed">
-              L&apos;automobile moderne repose sur des réseaux multiplexés, des dizaines de capteurs et des calculateurs interdépendants. Chez Run Auto, nous ne nous contentons jamais d&apos;effacer un voyant : nous croisons le diagnostic électronique ({GARAGE_CONFIG.equipment.flagshipName}) avec l&apos;étude des schémas électriques constructeur et des contrôles physiques.
+              L&apos;automobile moderne repose sur des réseaux multiplexés, des dizaines de capteurs et des calculateurs interdépendants. Chez {settings.name}, nous ne nous contentons jamais d&apos;effacer un voyant : nous croisons le diagnostic électronique ({settings.flagshipEquipment}) avec l&apos;étude des schémas électriques constructeur et des contrôles physiques.
             </p>
             <p className="text-sm text-technique leading-relaxed">
               Sur les projets d&apos;adaptation au bioéthanol E85 comme de reprogrammation moteur, chaque intervention débute par une vérification technique de compatibilité et de santé mécanique, puis se conclut par des contrôles après opération.
@@ -167,7 +178,19 @@ export default function LeGaragePage() {
               </div>
             ))}
           </div>
+          {settings.warrantyNote ? (
+            <p className="mt-8 pt-6 border-t border-aluminium text-xs font-semibold text-carbone">
+              {settings.warrantyNote}
+            </p>
+          ) : null}
         </div>
+
+        {/* Galerie & Réalisations de l'atelier */}
+        {gallery.length > 0 ? (
+          <div className="-mx-4 sm:-mx-8 mb-16">
+            <GallerySection gallery={gallery} />
+          </div>
+        ) : null}
 
         {/* Localisation & Invitation */}
         <div className="p-8 rounded-3xl bg-white border border-aluminium shadow-[0_12px_36px_-10px_rgba(23,25,29,0.06)] text-center space-y-4">
@@ -176,20 +199,24 @@ export default function LeGaragePage() {
             Une question technique ou une intervention à planifier ?
           </h3>
           <p className="text-xs text-technique max-w-lg mx-auto">
-            Nous vous accueillons du lundi au vendredi (09:00 – 19:00) au 52 boulevard de Roux, 13004 Marseille.
+            Nous vous accueillons au {settings.street}, {settings.postalCode} {settings.city}.
+            {settings.parkingInfo ? ` ${settings.parkingInfo}.` : ""}
+            {settings.transportInfo ? ` ${settings.transportInfo}.` : ""}
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/prendre-rendez-vous"
-              className="btn-racing px-7 py-3.5 rounded-xl text-xs uppercase tracking-wider font-extrabold"
-            >
-              Prendre rendez-vous en ligne
-            </Link>
+            {settings.onlineBookingEnabled ? (
+              <Link
+                href="/prendre-rendez-vous"
+                className="btn-racing px-7 py-3.5 rounded-xl text-xs uppercase tracking-wider font-extrabold"
+              >
+                Prendre rendez-vous en ligne
+              </Link>
+            ) : null}
             <a
-              href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+              href={`tel:${settings.phone.replace(/\s/g, "")}`}
               className="btn-outline-racing px-7 py-3.5 rounded-xl text-xs font-bold"
             >
-              Appeler l&apos;atelier ({GARAGE_CONFIG.contact.phoneDisplay})
+              Appeler l&apos;atelier ({settings.phone})
             </a>
           </div>
         </div>

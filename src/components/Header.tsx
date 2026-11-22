@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Phone, Calendar, Menu, X, Cpu, MapPin, Fuel, Megaphone } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { GarageSettings, OpeningHourEntry } from "@/types";
+import SocialLinks from "@/components/SocialLinks";
 
 export default function Header({
   settings,
@@ -147,7 +148,7 @@ export default function Header({
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? "bg-white/95 backdrop-blur-xl border-b border-aluminium py-3.5 shadow-[0_8px_28px_-6px_rgba(23,25,29,0.07)]"
+            ? "bg-white border-b border-aluminium py-3.5 shadow-[0_8px_28px_-6px_rgba(23,25,29,0.07)]"
             : "bg-white border-b border-aluminium py-4"
         }`}
       >
@@ -252,7 +253,7 @@ export default function Header({
 
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-white/98 backdrop-blur-2xl xl:hidden pt-24 px-6 pb-24 flex flex-col justify-between overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-white xl:hidden pt-24 px-6 pb-24 flex flex-col justify-between overflow-y-auto">
           <nav className="flex flex-col gap-3 text-base">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -308,6 +309,8 @@ export default function Header({
                 {onlineBookingEnabled ? "Prendre rendez-vous" : "Demander un devis"}
               </span>
             </Link>
+
+            <SocialLinks settings={settings} compact />
 
             <p className="text-xs text-center text-technique mt-1">
               {street}, {postalCode} {city}

@@ -1,13 +1,16 @@
 import React from "react";
 import type { Metadata } from "next";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { getSiteData } from "@/lib/siteData";
 
 export const metadata: Metadata = {
   title: "Mentions Légales | Run Auto Marseille",
   description: "Mentions légales officielles et informations administratives du garage Run Auto à Marseille.",
 };
 
-export default function MentionsLegalesPage() {
+export default async function MentionsLegalesPage() {
+  const { settings } = await getSiteData();
+
   return (
     <div className="pt-12 pb-24 bg-glacier text-technique">
       <div className="max-w-4xl mx-auto px-4 sm:px-8 space-y-10">
@@ -34,8 +37,8 @@ export default function MentionsLegalesPage() {
             <li><strong className="text-carbone">Immatriculation :</strong> {GARAGE_CONFIG.legal.rcs}</li>
             <li><strong className="text-carbone">N° TVA intracommunautaire :</strong> {GARAGE_CONFIG.legal.tvaIntracommunautaire}</li>
             <li><strong className="text-carbone">Activité (code NAF) :</strong> {GARAGE_CONFIG.legal.codeNaf}</li>
-            <li><strong className="text-carbone">Téléphone :</strong> {GARAGE_CONFIG.contact.phoneDisplay}</li>
-            <li><strong className="text-carbone">E-mail :</strong> {GARAGE_CONFIG.contact.email}</li>
+            <li><strong className="text-carbone">Téléphone :</strong> {settings.phone}</li>
+            <li><strong className="text-carbone">E-mail :</strong> {settings.email || GARAGE_CONFIG.contact.email}</li>
             <li><strong className="text-carbone">Directeur de la publication :</strong> {GARAGE_CONFIG.legal.directeurPublication}</li>
           </ul>
         </section>

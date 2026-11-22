@@ -21,7 +21,9 @@ import {
   Droplets,
   FileText,
 } from "lucide-react";
-import { GARAGE_CONFIG, SERVICE_CATEGORIES, getQuoteHref } from "@/config/garage";
+import { getQuoteHref } from "@/config/garage";
+import type { ServiceCard } from "@/lib/siteData";
+import type { AdminServiceCategory } from "@/types";
 
 const iconMap: Record<string, React.ElementType> = {
   Wrench,
@@ -38,18 +40,30 @@ const iconMap: Record<string, React.ElementType> = {
   Droplets,
 };
 
-export default function ServicesCatalogue() {
+export default function ServicesCatalogue({
+  services,
+  categories: adminCategories,
+  onlineBookingEnabled = true,
+}: {
+  services: ServiceCard[];
+  categories: AdminServiceCategory[];
+  onlineBookingEnabled?: boolean;
+}) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
+  // Ne montrer que les catégories qui ont au moins une prestation active
+  const usedCategoryIds = new Set(services.map((s) => s.categoryId));
   const categories = [
     { id: "all", label: "Toutes les prestations" },
-    ...SERVICE_CATEGORIES.map((c) => ({ id: c.id, label: c.label })),
+    ...adminCategories
+      .filter((c) => usedCategoryIds.has(c.id))
+      .map((c) => ({ id: c.id, label: c.name })),
   ];
 
   const filteredServices =
     activeCategory === "all"
-      ? GARAGE_CONFIG.services
-      : GARAGE_CONFIG.services.filter((s) => s.category === activeCategory);
+      ? services
+      : services.filter((s) => s.categoryId === activeCategory);
 
   return (
     <section id="prestations" className="py-24 bg-glacier border-t border-aluminium relative">
@@ -102,18 +116,19 @@ export default function ServicesCatalogue() {
               >
                 <div>
                   {/* Card Visual Header */}
-                  {service.heroImage && (
+                  {service.image && (
                     <div className="relative h-48 w-full overflow-hidden bg-glacier">
                       <Image
-                        src={service.heroImage}
+                        src={service.image}
                         alt={service.imageAlt || service.title}
                         fill
+                        unoptimized={service.image.startsWith("/api/")}
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-carbone border border-aluminium shadow-2xs">
-                          {service.category}
+                          {service.categoryLabel}
                         </span>
                         {service.badge && (
                           <span
@@ -180,11 +195,11 @@ export default function ServicesCatalogue() {
                       </span>
                     </span>
                     <span className="text-carbone font-bold text-[11px] shrink-0">
-                      {service.priceNotice}
+                      {service.displayPrice}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div className={`grid ${onlineBookingEnabled ? "grid-cols-3" : "grid-cols-2"} gap-2 pt-1`}>
                     <Link
                       href={`/prestations/${service.slug}`}
                       className="btn-outline-racing px-2.5 py-2.5 rounded-xl text-xs text-center"
@@ -200,13 +215,15 @@ export default function ServicesCatalogue() {
                       <span>Devis</span>
                     </Link>
 
-                    <Link
-                      href={`/prendre-rendez-vous?service=${service.id}`}
-                      className="btn-racing px-2.5 py-2.5 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1"
-                    >
-                      <span>RDV</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
+                    {onlineBookingEnabled ? (
+                      <Link
+                        href={`/prendre-rendez-vous?service=${service.id}`}
+                        className="btn-racing px-2.5 py-2.5 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1"
+                      >
+                        <span>RDV</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               </div>

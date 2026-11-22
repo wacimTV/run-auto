@@ -2,8 +2,23 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Wrench, Eye, Cpu } from "lucide-react";
+import { GARAGE_CONFIG } from "@/config/garage";
+import { GarageSettings } from "@/types";
 
-export default function GaragePresentation() {
+export default function GaragePresentation({
+  settings,
+}: {
+  settings?: GarageSettings;
+}) {
+  const workshopImage = settings?.workshopImage?.trim() || "/images/atelier-light.jpg";
+  const flagshipEquipment = settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
+  const street = settings?.street || GARAGE_CONFIG.contact.address;
+  const postalCode = settings?.postalCode || GARAGE_CONFIG.contact.postalCode;
+  const city = settings?.city || GARAGE_CONFIG.contact.city;
+  const garageName = settings?.name || GARAGE_CONFIG.name;
+  const supportedBrands = settings?.supportedBrands;
+  const warrantyNote = settings?.warrantyNote;
+
   const pillars = [
     {
       icon: Cpu,
@@ -18,12 +33,14 @@ export default function GaragePresentation() {
     {
       icon: Wrench,
       title: "Outillage dernière génération",
-      text: "Station de diagnostic TOPDON Phoenix Max, appareils de mesure électrique et outillage mécanique de précision.",
+      text: `Station de diagnostic ${flagshipEquipment}, appareils de mesure électrique et outillage mécanique de précision.`,
     },
     {
       icon: ShieldCheck,
       title: "Respect de la réglementation",
-      text: "Vérification de compatibilité systématique, préservation des dispositifs antipollution et respect des préconisations constructeur.",
+      text:
+        warrantyNote ||
+        "Vérification de compatibilité systématique, préservation des dispositifs antipollution et respect des préconisations constructeur.",
     },
   ];
 
@@ -38,9 +55,10 @@ export default function GaragePresentation() {
           <div className="lg:col-span-5 relative">
             <div className="relative h-[480px] w-full rounded-3xl overflow-hidden border border-aluminium shadow-lg group">
               <Image
-                src="/images/atelier-light.jpg"
-                alt="Atelier Run Auto à Marseille 13004 : reprogrammation, électronique et mécanique"
+                src={workshopImage}
+                alt={`Atelier ${garageName} à ${city} ${postalCode} : reprogrammation, électronique et mécanique`}
                 fill
+                unoptimized={workshopImage.startsWith("/api/")}
                 sizes="(max-width: 1024px) 100vw, 40vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-700"
               />
@@ -50,14 +68,14 @@ export default function GaragePresentation() {
               <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-aluminium shadow-md">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-xl bg-racing flex items-center justify-center text-white shrink-0 font-extrabold font-display text-xs">
-                    13004
+                    {postalCode}
                   </div>
                   <div>
                     <p className="text-xs font-extrabold text-carbone uppercase tracking-wider">
-                      Atelier Run Auto Marseille
+                      Atelier {garageName} {city}
                     </p>
                     <p className="text-[11px] text-technique">
-                      52 boulevard de Roux • Lun–Ven 09:00–19:00
+                      {street} • {postalCode} {city}
                     </p>
                   </div>
                 </div>
@@ -76,10 +94,17 @@ export default function GaragePresentation() {
               <span className="text-racing">alliant électronique de pointe et mécanique.</span>
             </h2>
 
-            <p className="text-technique leading-relaxed mb-8 text-base">
-              Implanté au <strong>52 boulevard de Roux dans le 4ème arrondissement de Marseille</strong>,{" "}
-              <strong className="text-carbone">Run Auto</strong> accompagne les automobilistes aussi bien sur les projets d&apos;optimisation (conversion bioéthanol E85, reprogrammation moteur, ajout d&apos;options) que sur les pannes électroniques complexes et l&apos;entretien mécanique général.
+            <p className="text-technique leading-relaxed mb-4 text-base">
+              Implanté au <strong>{street} à {city} ({postalCode})</strong>,{" "}
+              <strong className="text-carbone">{garageName}</strong> accompagne les automobilistes aussi bien sur les projets d&apos;optimisation (conversion bioéthanol E85, reprogrammation moteur, ajout d&apos;options) que sur les pannes électroniques complexes et l&apos;entretien mécanique général.
             </p>
+            {supportedBrands ? (
+              <p className="text-xs font-semibold text-carbone bg-glacier border border-aluminium rounded-xl px-4 py-2.5 mb-8">
+                {supportedBrands}
+              </p>
+            ) : (
+              <div className="mb-4" />
+            )}
 
             {/* 4 Pillars Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mb-10">

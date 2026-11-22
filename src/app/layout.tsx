@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import MobileActionBar from "@/components/MobileActionBar";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { SITE_URL, SITE_INDEXABLE, absoluteUrl } from "@/config/site";
-import { storage } from "@/lib/storage";
+import { getSiteData, toServiceLinks } from "@/lib/siteData";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -94,56 +94,14 @@ export const metadata: Metadata = {
   },
 };
 
-// JSON-LD Schema.org enrichi pour le SEO Local Automobile à Marseille
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "AutoRepair",
-  name: GARAGE_CONFIG.name,
-  description: GARAGE_CONFIG.activity,
-  logo: absoluteUrl("/images/logo-run-auto.png"),
-  image: absoluteUrl("/images/hero-performance.jpg"),
-  "@id": absoluteUrl("/#garage"),
-  url: SITE_URL,
-  telephone: GARAGE_CONFIG.contact.phoneInternational,
-  priceRange: "€€",
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: GARAGE_CONFIG.contact.address,
-    addressLocality: GARAGE_CONFIG.contact.city,
-    postalCode: GARAGE_CONFIG.contact.postalCode,
-    addressRegion: GARAGE_CONFIG.contact.region,
-    addressCountry: "FR",
-  },
-  geo: {
-    "@type": "GeoCoordinates",
-    latitude: GARAGE_CONFIG.contact.coordinates.latitude,
-    longitude: GARAGE_CONFIG.contact.coordinates.longitude,
-  },
-  openingHoursSpecification: [
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "09:00",
-      closes: "19:00",
-    },
-  ],
-  hasOfferCatalog: {
-    "@type": "OfferCatalog",
-    name: "Prestations Run Auto Marseille",
-    itemListElement: GARAGE_CONFIG.services.map((s) => ({
-      "@type": "Offer",
-      itemOffered: {
-        "@type": "Service",
-        name: s.title,
-        description: s.shortDescription,
-        url: absoluteUrl(`/prestations/${s.slug}`),
-      },
-    })),
-  },
-  // Pas d'aggregateRating : Google interdit les avis "auto-hébergés" issus d'une plateforme tierce.
-  legalName: GARAGE_CONFIG.legal.raisonSociale,
-  taxID: GARAGE_CONFIG.legal.tvaIntracommunautaire.replace(/\s/g, ""),
-  sameAs: [GARAGE_CONFIG.partner.idGaragesUrl],
+const SCHEMA_DAYS: Record<number, string> = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
 };
 
 export default async function RootLayout({
@@ -151,12 +109,91 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let siteState;
+  let siteData;
   try {
-    siteState = await storage.getSiteAdminState();
+    siteData = await getSiteData();
   } catch {
-    siteState = undefined;
+    siteData = undefined;
   }
+
+  const s = siteData?.settings;
+  const activeServices = siteData?.services ?? [];
+  const activePlatforms = siteData?.platforms ?? [];
+  const openSpecs = (siteData?.hours ?? [])
+    .filter((h) => !h.closed)
+    .map((h) => ({
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: SCHEMA_DAYS[h.dayOfWeek] ?? "Monday",
+      opens: h.openTime,
+      closes: h.closeTime,
+    }));
+
+  const sameAsUrls = [
+    ...activePlatforms.map((p) => p.url),
+    s?.instagram,
+    s?.facebook,
+    s?.tiktok,
+    s?.snapchat,
+  ].filter((u): u is string => Boolean(u && u.trim()));
+
+  const phoneIntl = s?.phone
+    ? s.phone.replace(/\s/g, "").replace(/^0/, "+33")
+    : GARAGE_CONFIG.contact.phoneInternational;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "AutoRepair",
+    name: s?.name || GARAGE_CONFIG.name,
+    description: GARAGE_CONFIG.activity,
+    logo: absoluteUrl("/images/logo-run-auto.png"),
+    image: absoluteUrl(s?.heroImage || "/images/hero-performance-light.jpg"),
+    "@id": absoluteUrl("/#garage"),
+    url: SITE_URL,
+    telephone: phoneIntl,
+    email: s?.email || GARAGE_CONFIG.contact.email,
+    priceRange: "€€",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: s?.street || GARAGE_CONFIG.contact.address,
+      addressLocality: s?.city || GARAGE_CONFIG.contact.city,
+      postalCode: s?.postalCode || GARAGE_CONFIG.contact.postalCode,
+      addressRegion: GARAGE_CONFIG.contact.region,
+      addressCountry: "FR",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: s?.latitude ?? GARAGE_CONFIG.contact.coordinates.latitude,
+      longitude: s?.longitude ?? GARAGE_CONFIG.contact.coordinates.longitude,
+    },
+    openingHoursSpecification:
+      openSpecs.length > 0
+        ? openSpecs
+        : [
+            {
+              "@type": "OpeningHoursSpecification",
+              dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+              opens: "09:00",
+              closes: "19:00",
+            },
+          ],
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: `Prestations ${s?.name || GARAGE_CONFIG.name} ${s?.city || GARAGE_CONFIG.contact.city}`,
+      itemListElement: activeServices.map((srv) => ({
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: srv.title,
+          description: srv.shortDescription,
+          url: absoluteUrl(`/prestations/${srv.slug}`),
+        },
+      })),
+    },
+    // Pas d'aggregateRating : Google interdit les avis "auto-hébergés" issus d'une plateforme tierce.
+    legalName: GARAGE_CONFIG.legal.raisonSociale,
+    taxID: GARAGE_CONFIG.legal.tvaIntracommunautaire.replace(/\s/g, ""),
+    sameAs: sameAsUrls.length > 0 ? sameAsUrls : [GARAGE_CONFIG.partner.idGaragesUrl],
+  };
 
   return (
     <html lang="fr" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
@@ -167,12 +204,17 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-blanc text-carbone font-sans antialiased selection:bg-racing selection:text-white min-h-screen flex flex-col pb-16 lg:pb-0">
-        <Header settings={siteState?.settings} hours={siteState?.hours} />
+        <Header settings={siteData?.settings} hours={siteData?.hours} />
         <main className="flex-1">{children}</main>
-        <Footer settings={siteState?.settings} hours={siteState?.hours} />
+        <Footer
+          settings={siteData?.settings}
+          hours={siteData?.hours}
+          services={siteData ? toServiceLinks(siteData.services) : undefined}
+          platforms={siteData?.platforms}
+        />
         <MobileActionBar
-          phoneDisplay={siteState?.settings.phone}
-          onlineBookingEnabled={siteState?.settings.onlineBookingEnabled}
+          phoneDisplay={siteData?.settings.phone}
+          onlineBookingEnabled={siteData?.settings.onlineBookingEnabled}
         />
       </body>
     </html>

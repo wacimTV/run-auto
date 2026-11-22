@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import FAQSection from "@/components/FAQSection";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
-import { GARAGE_CONFIG } from "@/config/garage";
+import { getSiteData } from "@/lib/siteData";
 
 export const metadata: Metadata = {
   title: "Foire Aux Questions (FAQ) | Run Auto Marseille 13004",
@@ -11,7 +11,9 @@ export const metadata: Metadata = {
     "Toutes les réponses à vos questions sur la conversion Bioéthanol E85, la reprogrammation moteur, le diagnostic électronique TOPDON et les réparations chez Run Auto Marseille.",
 };
 
-export default function FAQPage() {
+export default async function FAQPage() {
+  const { settings } = await getSiteData();
+
   return (
     <div className="pt-12 pb-24 bg-glacier">
       <div className="max-w-4xl mx-auto px-4 sm:px-8 mb-8 text-center">
@@ -22,11 +24,11 @@ export default function FAQPage() {
           Foire Aux Questions
         </h1>
         <p className="text-base text-technique">
-          Retrouvez les réponses aux interrogations les plus fréquentes des automobilistes à Marseille.
+          Retrouvez les réponses aux interrogations les plus fréquentes des automobilistes à {settings.city}.
         </p>
       </div>
 
-      <FAQSection />
+      <FAQSection settings={settings} />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-8 mt-12 text-center">
         <div className="p-8 rounded-2xl bg-white border border-aluminium shadow-[0_8px_24px_-6px_rgba(23,25,29,0.05)] space-y-4">
@@ -34,7 +36,7 @@ export default function FAQPage() {
             Votre question n&apos;est pas répertoriée ?
           </h3>
           <p className="text-xs text-technique">
-            Nous sommes joignables directement au {GARAGE_CONFIG.contact.phoneDisplay} ou via notre formulaire de contact en ligne.
+            Nous sommes joignables directement au {settings.phone} ou via notre formulaire de contact en ligne.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

@@ -159,7 +159,10 @@ export default function OpeningHoursAndMap({
 
           {/* Interactive Map Embed */}
           <div className="lg:col-span-7 rounded-2xl overflow-hidden border border-aluminium shadow-[0_10px_30px_-8px_rgba(23,25,29,0.05)] relative min-h-[420px] bg-white">
-            <GoogleMapEmbed />
+            <GoogleMapEmbed
+              fullAddress={`${street}, ${postalCode} ${city}, France`}
+              googleMapsUrl={googleMapsUrl}
+            />
             {/* Overlay badge on map */}
             <div className="absolute top-4 left-4 p-3.5 rounded-xl bg-white/95 backdrop-blur-md border border-aluminium text-xs text-carbone shadow-md">
               <p className="font-extrabold text-carbone font-display">

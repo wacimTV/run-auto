@@ -1,10 +1,47 @@
-import { Appointment, ContactMessage } from "@/types";
+import { Appointment, ContactMessage, GarageSettings } from "@/types";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { escapeHtml } from "@/lib/validation";
+import { getSiteData } from "@/lib/siteData";
 
 // Expéditeur : tant que le domaine n'est pas vérifié dans Resend, utiliser "Run Auto <onboarding@resend.dev>"
 // (Resend n'autorise alors l'envoi QU'À l'adresse du compte Resend).
 const EMAIL_FROM = process.env.EMAIL_FROM || "Run Auto <onboarding@resend.dev>";
+
+async function resolveSettings(override?: GarageSettings): Promise<{
+  name: string;
+  phone: string;
+  fullAddress: string;
+  city: string;
+  googleReviewUrl: string;
+}> {
+  if (override) {
+    return {
+      name: override.name || GARAGE_CONFIG.name,
+      phone: override.phone || GARAGE_CONFIG.contact.phoneDisplay,
+      fullAddress: `${override.street}, ${override.postalCode} ${override.city}`,
+      city: override.city || GARAGE_CONFIG.contact.city,
+      googleReviewUrl: override.googleReviewUrl?.trim() || "",
+    };
+  }
+  try {
+    const { settings } = await getSiteData();
+    return {
+      name: settings.name || GARAGE_CONFIG.name,
+      phone: settings.phone || GARAGE_CONFIG.contact.phoneDisplay,
+      fullAddress: `${settings.street}, ${settings.postalCode} ${settings.city}`,
+      city: settings.city || GARAGE_CONFIG.contact.city,
+      googleReviewUrl: settings.googleReviewUrl?.trim() || "",
+    };
+  } catch {
+    return {
+      name: GARAGE_CONFIG.name,
+      phone: GARAGE_CONFIG.contact.phoneDisplay,
+      fullAddress: GARAGE_CONFIG.contact.fullAddress,
+      city: GARAGE_CONFIG.contact.city,
+      googleReviewUrl: "",
+    };
+  }
+}
 
 /** Alerte e-mail au garage pour chaque message du formulaire de contact. */
 export async function sendContactNotification(contact: ContactMessage): Promise<boolean> {
@@ -54,8 +91,9 @@ export async function sendContactNotification(contact: ContactMessage): Promise<
 
 export async function sendAppointmentNotifications(appointment: Appointment): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
+  const info = await resolveSettings();
 
-  const subjectClient = `Confirmation de votre demande de rendez-vous - ${GARAGE_CONFIG.name}`;
+  const subjectClient = `Confirmation de votre demande de rendez-vous - ${info.name}`;
 
   // Journalisation sans données personnelles
   console.log(`[EMAIL NOTIFICATION] Preparation d'envoi pour RDV #${appointment.id}`);
@@ -77,6 +115,10 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
     date: escapeHtml(appointment.date),
     time: escapeHtml(appointment.time),
     phone: escapeHtml(appointment.client.phone),
+    garageName: escapeHtml(info.name),
+    garageCity: escapeHtml(info.city),
+    garageAddress: escapeHtml(info.fullAddress),
+    garagePhone: escapeHtml(info.phone),
   };
 
   try {
@@ -92,7 +134,7 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
         subject: subjectClient,
         html: `
           <div style="font-family: sans-serif; background: #0B0B0C; color: #F5F5F5; padding: 30px; border-radius: 8px;">
-            <h2 style="color: #E10600;">RUN AUTO - MARSEILLE</h2>
+            <h2 style="color: #E10600;">${e.garageName.toUpperCase()} - ${e.garageCity.toUpperCase()}</h2>
             <p>Bonjour ${e.firstName} ${e.lastName},</p>
             <p>Nous avons bien reçu votre demande de rendez-vous pour votre véhicule <strong>${e.make} ${e.model}</strong>.</p>
             <div style="background: #161618; padding: 20px; border-left: 4px solid #E10600; margin: 20px 0;">
@@ -100,8 +142,8 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
               <p><strong>Date souhaitée :</strong> ${e.date} à ${e.time}</p>
               <p><strong>Statut :</strong> Demande enregistrée, en attente de confirmation par nos équipes.</p>
             </div>
-            <p>Notre atelier à Marseille (52 boulevard de Roux, 13004) vous recontactera sous 2h ouvrées au <strong>${e.phone}</strong>.</p>
-            <p>Cordialement,<br>L'équipe Run Auto</p>
+            <p>Notre atelier (${e.garageAddress} • ${e.garagePhone}) vous recontactera sous 2h ouvrées au <strong>${e.phone}</strong>.</p>
+            <p>Cordialement,<br>L'équipe ${e.garageName}</p>
           </div>
         `,
       }),
@@ -147,10 +189,16 @@ export async function sendAppointmentNotifications(appointment: Appointment): Pr
  */
 export async function sendAppointmentStatusEmail(
   appointment: Appointment,
-  garageName = GARAGE_CONFIG.name
+  settingsOverride?: GarageSettings | string
 ): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !appointment.client.email) return true;
+
+  const info = await resolveSettings(
+    typeof settingsOverride === "object" ? settingsOverride : undefined
+  );
+  const garageName =
+    typeof settingsOverride === "string" ? settingsOverride : info.name;
 
   const statusLabels: Record<string, string> = {
     confirmed: "Rendez-vous confirmé par l'atelier ✅",
@@ -182,6 +230,16 @@ export async function sendAppointmentStatusEmail(
     statusLabel: escapeHtml(label),
   };
 
+  const reviewBlock =
+    appointment.status === "completed" && info.googleReviewUrl
+      ? `
+            <div style="margin: 24px 0; padding: 18px; background: #22252B; border-radius: 8px; text-align: center;">
+              <p style="margin: 0 0 12px 0; font-size: 14px;">Satisfait de notre intervention ? Votre retour aide d'autres automobilistes :</p>
+              <a href="${escapeHtml(info.googleReviewUrl)}" style="display: inline-block; background: #D71920; color: #FFFFFF; text-decoration: none; font-weight: bold; padding: 12px 22px; border-radius: 8px; font-size: 14px;">Laisser un avis Google</a>
+            </div>
+        `
+      : "";
+
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -195,7 +253,7 @@ export async function sendAppointmentStatusEmail(
         subject,
         html: `
           <div style="font-family: sans-serif; background: #17191D; color: #F5F5F5; padding: 30px; border-radius: 12px;">
-            <h2 style="color: #D71920; margin-top: 0;">${escapeHtml(garageName.toUpperCase())} — MARSEILLE</h2>
+            <h2 style="color: #D71920; margin-top: 0;">${escapeHtml(garageName.toUpperCase())} — ${escapeHtml(info.city.toUpperCase())}</h2>
             <p>Bonjour ${e.firstName} ${e.lastName},</p>
             <p>Voici une mise à jour concernant votre véhicule <strong>${e.make} ${e.model}</strong> (${e.plate}) :</p>
             <div style="background: #22252B; padding: 20px; border-left: 4px solid #D71920; margin: 20px 0; border-radius: 6px;">
@@ -203,7 +261,8 @@ export async function sendAppointmentStatusEmail(
               <p style="margin: 4px 0;"><strong>Intervention :</strong> ${e.service}</p>
               <p style="margin: 4px 0;"><strong>Créneau :</strong> ${e.date} à ${e.time}</p>
             </div>
-            <p>Atelier situé au <strong>${escapeHtml(GARAGE_CONFIG.contact.fullAddress)}</strong> • Tél. : <strong>${escapeHtml(GARAGE_CONFIG.contact.phoneDisplay)}</strong>.</p>
+            ${reviewBlock}
+            <p>Atelier situé au <strong>${escapeHtml(info.fullAddress)}</strong> • Tél. : <strong>${escapeHtml(info.phone)}</strong>.</p>
             <p>Cordialement,<br>L'équipe ${escapeHtml(garageName)}</p>
           </div>
         `,
@@ -212,6 +271,68 @@ export async function sendAppointmentStatusEmail(
     return res.ok;
   } catch (err) {
     console.error("[EMAIL ERROR] Notification statut RDV:", err);
+    return false;
+  }
+}
+
+/**
+ * E-mail de rappel envoyé la veille aux rendez-vous confirmés (cron quotidien).
+ */
+export async function sendAppointmentReminderEmail(
+  appointment: Appointment,
+  settingsOverride?: GarageSettings
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !appointment.client.email) return true;
+
+  const info = await resolveSettings(settingsOverride);
+  const e = {
+    firstName: escapeHtml(appointment.client.firstName),
+    lastName: escapeHtml(appointment.client.lastName),
+    make: escapeHtml(appointment.vehicle.make),
+    model: escapeHtml(appointment.vehicle.model),
+    plate: escapeHtml(appointment.vehicle.licensePlate || "Non renseignée"),
+    service: escapeHtml(appointment.serviceName),
+    date: escapeHtml(appointment.date),
+    time: escapeHtml(appointment.time),
+    garageName: escapeHtml(info.name),
+    garageCity: escapeHtml(info.city),
+    garageAddress: escapeHtml(info.fullAddress),
+    garagePhone: escapeHtml(info.phone),
+  };
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: [appointment.client.email],
+        subject: `Rappel de votre rendez-vous demain à ${appointment.time} — ${info.name}`,
+        html: `
+          <div style="font-family: sans-serif; background: #17191D; color: #F5F5F5; padding: 30px; border-radius: 12px;">
+            <h2 style="color: #D71920; margin-top: 0;">RAPPEL RENDEZ-VOUS — ${e.garageName.toUpperCase()}</h2>
+            <p>Bonjour ${e.firstName} ${e.lastName},</p>
+            <p>Nous vous rappelons votre rendez-vous confirmé <strong>demain</strong> à notre atelier pour votre véhicule <strong>${e.make} ${e.model}</strong> (${e.plate}) :</p>
+            <div style="background: #22252B; padding: 20px; border-left: 4px solid #D71920; margin: 20px 0; border-radius: 6px;">
+              <p style="margin: 4px 0;"><strong>Date :</strong> ${e.date}</p>
+              <p style="margin: 4px 0;"><strong>Heure de dépôt :</strong> ${e.time}</p>
+              <p style="margin: 4px 0;"><strong>Prestation :</strong> ${e.service}</p>
+              <p style="margin: 4px 0;"><strong>Adresse :</strong> ${e.garageAddress}</p>
+            </div>
+            <p>En cas d'empêchement, merci de nous prévenir au <strong>${e.garagePhone}</strong>.</p>
+            <p>À demain,<br>L'équipe ${e.garageName} ${e.garageCity}</p>
+          </div>
+        `,
+      }),
+    });
+    if (!res.ok) console.error("[EMAIL ERROR] Resend reminder:", res.status, await res.text());
+    return res.ok;
+  } catch (err) {
+    console.error("[EMAIL ERROR] Envoi rappel RDV:", err);
     return false;
   }
 }

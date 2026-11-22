@@ -4,24 +4,32 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { MapPin, Phone, Mail, Clock, Cpu, ChevronRight, Lock, Fuel } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Cpu, ChevronRight, Lock, Fuel, ExternalLink } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
 import { DAY_NAMES } from "@/lib/motorisations";
-import { GarageSettings, OpeningHourEntry } from "@/types";
+import { GarageSettings, OpeningHourEntry, PartnerPlatform } from "@/types";
+import type { ServiceLink } from "@/lib/siteData";
+import SocialLinks from "@/components/SocialLinks";
 
 export default function Footer({
   settings,
   hours,
+  services,
+  platforms,
 }: {
   settings?: GarageSettings;
   hours?: OpeningHourEntry[];
+  services?: ServiceLink[];
+  platforms?: PartnerPlatform[];
 }) {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) {
     return null;
   }
 
+  const garageName = settings?.name || GARAGE_CONFIG.name;
   const phoneDisplay = settings?.phone || GARAGE_CONFIG.contact.phoneDisplay;
+  const email = settings?.email || GARAGE_CONFIG.contact.email;
   const street = settings?.street || GARAGE_CONFIG.contact.address;
   const postalCode = settings?.postalCode || GARAGE_CONFIG.contact.postalCode;
   const city = settings?.city || GARAGE_CONFIG.contact.city;
@@ -30,6 +38,16 @@ export default function Footer({
   const flagshipEquipment =
     settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
   const onlineBookingEnabled = settings?.onlineBookingEnabled ?? true;
+  const warrantyNote = settings?.warrantyNote;
+  const activeServices =
+    services && services.length > 0
+      ? services
+      : GARAGE_CONFIG.services.map((s) => ({
+          id: s.id,
+          slug: s.slug,
+          title: s.title,
+        }));
+  const activePlatforms = (platforms ?? []).filter((p) => p.active);
 
   return (
     <footer className="bg-glacier border-t border-aluminium text-technique pt-16 pb-12">
@@ -55,6 +73,8 @@ export default function Footer({
               <Cpu className="w-4 h-4 text-racing shrink-0" />
               <span>Diagnostic de dernière génération ({flagshipEquipment}).</span>
             </div>
+
+            <SocialLinks settings={settings} />
           </div>
 
           {/* Col 2: Prestations Spécialisées */}
@@ -64,7 +84,7 @@ export default function Footer({
               Pôles d&apos;Expertise
             </h3>
             <ul className="flex flex-col gap-2.5 text-sm">
-              {GARAGE_CONFIG.services.slice(0, 7).map((service) => {
+              {activeServices.slice(0, 7).map((service) => {
                 const isE85 = service.slug === "conversion-bioethanol-e85";
                 return (
                   <li key={service.id}>
@@ -91,7 +111,7 @@ export default function Footer({
                   href="/prestations"
                   className="text-racing hover:text-carbone font-bold text-xs flex items-center gap-1"
                 >
-                  Voir les {GARAGE_CONFIG.services.length} prestations →
+                  Voir les {activeServices.length} prestations →
                 </Link>
               </li>
             </ul>
@@ -192,13 +212,45 @@ export default function Footer({
 
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-racing shrink-0" />
-                <Link
-                  href="/contact"
-                  className="text-technique hover:text-racing text-xs font-medium transition-colors"
-                >
-                  Formulaire de contact &amp; demande de devis
-                </Link>
+                <div className="flex flex-col">
+                  {email ? (
+                    <a
+                      href={`mailto:${email}`}
+                      className="text-carbone hover:text-racing text-xs font-semibold transition-colors"
+                    >
+                      {email}
+                    </a>
+                  ) : null}
+                  <Link
+                    href="/contact"
+                    className="text-technique hover:text-racing text-xs font-medium transition-colors"
+                  >
+                    Formulaire de contact &amp; demande de devis
+                  </Link>
+                </div>
               </li>
+
+              {activePlatforms.length > 0 ? (
+                <li className="pt-1 border-t border-aluminium/70 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-technique block">
+                    Retrouvez-nous aussi sur :
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {activePlatforms.map((p) => (
+                      <a
+                        key={p.id}
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-carbone bg-white border border-aluminium px-2.5 py-1 rounded-lg hover:border-racing hover:text-racing transition-colors"
+                      >
+                        <span>{p.name}</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ))}
+                  </div>
+                </li>
+              ) : null}
 
               <li className="pt-2">
                 <Link
@@ -218,11 +270,17 @@ export default function Footer({
           </div>
         </div>
 
+        {warrantyNote ? (
+          <p className="mb-6 text-center text-[11px] text-technique bg-white border border-aluminium rounded-xl px-4 py-2.5">
+            {warrantyNote}
+          </p>
+        ) : null}
+
         {/* Bottom Bar: Mentions Légales, Droits & Crédit Développeur */}
         <div className="pt-8 border-t border-aluminium flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-technique">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
             <p className="font-medium">
-              © {new Date().getFullYear()} RUN AUTO MARSEILLE. Tous droits réservés.
+              © {new Date().getFullYear()} {garageName.toUpperCase()} {city.toUpperCase()}. Tous droits réservés.
             </p>
             <span className="hidden sm:inline text-aluminium">•</span>
             <p className="font-medium">

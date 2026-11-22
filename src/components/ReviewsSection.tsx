@@ -1,14 +1,16 @@
 import React from "react";
-import { Star, ShieldCheck, ExternalLink, Award } from "lucide-react";
+import { Star, ShieldCheck, ExternalLink, Award, MessageSquarePlus } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
-import { GarageReview, GarageSettings } from "@/types";
+import { GarageReview, GarageSettings, PartnerPlatform } from "@/types";
 
 export default function ReviewsSection({
   reviews,
   settings,
+  platforms,
 }: {
   reviews?: GarageReview[];
   settings?: GarageSettings;
+  platforms?: PartnerPlatform[];
 }) {
   const {
     verifiedAverageRating: defaultRating,
@@ -23,7 +25,10 @@ export default function ReviewsSection({
 
   const verifiedAverageRating = settings?.verifiedRating ?? defaultRating;
   const reviewCount = settings?.verifiedReviewCount ?? String(defaultCount);
-  const sourceUrl = settings?.googleReviewUrl || defaultUrl;
+  const idGaragesPlatform = platforms?.find((p) => p.active && /idgarage/i.test(p.name));
+  const sourceUrl = idGaragesPlatform?.url || defaultUrl;
+  const googleReviewUrl = settings?.googleReviewUrl?.trim() || "";
+  const activePlatforms = (platforms ?? []).filter((p) => p.active);
   const idGaragesRef = settings?.idGaragesRef || GARAGE_CONFIG.partner.idGaragesRef;
   const testimonials =
     reviews && reviews.length > 0
@@ -92,16 +97,49 @@ export default function ReviewsSection({
             </div>
           </div>
 
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-outline-racing px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shrink-0"
-          >
-            <span>Lire tous les avis</span>
-            <ExternalLink className="w-3.5 h-3.5 text-racing" />
-          </a>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline-racing px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+            >
+              <span>Lire tous les avis</span>
+              <ExternalLink className="w-3.5 h-3.5 text-racing" />
+            </a>
+
+            {googleReviewUrl ? (
+              <a
+                href={googleReviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-racing px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+              >
+                <MessageSquarePlus className="w-3.5 h-3.5" />
+                <span>Laisser un avis Google</span>
+              </a>
+            ) : null}
+          </div>
         </div>
+
+        {/* Plateformes partenaires actives */}
+        {activePlatforms.length > 0 ? (
+          <div className="max-w-3xl mx-auto mb-10 flex flex-wrap items-center justify-center gap-2.5 text-xs">
+            <span className="text-technique font-semibold">Nos fiches vérifiées :</span>
+            {activePlatforms.map((p) => (
+              <a
+                key={p.id}
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-aluminium text-carbone font-bold hover:border-racing hover:text-racing transition-colors shadow-2xs"
+              >
+                <span>{p.name}</span>
+                <ExternalLink className="w-3 h-3 text-racing" />
+              </a>
+            ))}
+          </div>
+        ) : null}
 
         {/* Notes détaillées */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-12">

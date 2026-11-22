@@ -2,17 +2,21 @@ import React from "react";
 import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
 import GoogleMapEmbed from "@/components/GoogleMapEmbed";
-import { GARAGE_CONFIG } from "@/config/garage";
-import { MapPin, Phone, Clock, Navigation, Fuel, Gauge, Cpu } from "lucide-react";
+import { getSiteData, formatWhatsAppHref } from "@/lib/siteData";
+import { DAY_NAMES } from "@/lib/motorisations";
+import { MapPin, Phone, Clock, Navigation, Fuel, Gauge, Cpu, Mail, MessageCircle } from "lucide-react";
 
 export const metadata: Metadata = {
   title:
     "Demande de Devis (E85, Reprogrammation, Diagnostic) & Contact | Run Auto Marseille 13004",
   description:
-    "Demandez votre devis conversion bioéthanol E85, reprogrammation moteur, diagnostic électronique ou mécanique chez Run Auto à Marseille : 06 18 31 89 15 • 52 boulevard de Roux, 13004.",
+    "Demandez votre devis conversion bioéthanol E85, reprogrammation moteur, diagnostic électronique ou mécanique chez Run Auto à Marseille.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const { settings, hours } = await getSiteData();
+  const waHref = settings.whatsapp ? formatWhatsAppHref(settings.whatsapp) : null;
+
   return (
     <div className="pt-12 pb-24 bg-glacier">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -25,7 +29,7 @@ export default function ContactPage() {
             Demander un Devis ou Contacter l&apos;Atelier
           </h1>
           <p className="text-base text-technique">
-            Une demande de devis bioéthanol E85, un projet de reprogrammation moteur, un voyant allumé ou une intervention mécanique ? Notre atelier à Marseille (13004) vous répond rapidement.
+            Une demande de devis bioéthanol E85, un projet de reprogrammation moteur, un voyant allumé ou une intervention mécanique ? Notre atelier à {settings.city} ({settings.postalCode}) vous répond rapidement.
           </p>
         </div>
 
@@ -43,14 +47,18 @@ export default function ContactPage() {
                   <p className="text-xs font-bold uppercase tracking-wider text-technique mb-1">
                     Adresse
                   </p>
-                  <p className="text-sm font-bold text-carbone">
-                    {GARAGE_CONFIG.contact.address}
-                  </p>
+                  <p className="text-sm font-bold text-carbone">{settings.street}</p>
                   <p className="text-xs text-technique">
-                    {GARAGE_CONFIG.contact.postalCode} {GARAGE_CONFIG.contact.city}, France
+                    {settings.postalCode} {settings.city}, France
                   </p>
+                  {settings.parkingInfo ? (
+                    <p className="text-[11px] text-technique mt-1.5">{settings.parkingInfo}</p>
+                  ) : null}
+                  {settings.transportInfo ? (
+                    <p className="text-[11px] text-technique mt-0.5">{settings.transportInfo}</p>
+                  ) : null}
                   <a
-                    href={GARAGE_CONFIG.contact.googleMapsUrl}
+                    href={settings.googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-racing hover:underline mt-2 inline-flex items-center gap-1 font-bold"
@@ -68,25 +76,66 @@ export default function ContactPage() {
                     Téléphone Direct
                   </p>
                   <a
-                    href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+                    href={`tel:${settings.phone.replace(/\s/g, "")}`}
                     className="text-lg font-extrabold text-carbone hover:text-racing transition-colors"
                   >
-                    {GARAGE_CONFIG.contact.phoneDisplay}
+                    {settings.phone}
                   </a>
                   <p className="text-[11px] text-technique">Appel direct vers l&apos;atelier</p>
+                  {waHref ? (
+                    <a
+                      href={waHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-e85 hover:underline"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>Écrire sur WhatsApp</span>
+                    </a>
+                  ) : null}
                 </div>
               </div>
 
+              {settings.email ? (
+                <div className="flex items-start gap-4 pt-4 border-t border-aluminium">
+                  <Mail className="w-5 h-5 text-racing shrink-0 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-technique mb-1">
+                      E-mail
+                    </p>
+                    <a
+                      href={`mailto:${settings.email}`}
+                      className="text-sm font-bold text-carbone hover:text-racing transition-colors"
+                    >
+                      {settings.email}
+                    </a>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex items-start gap-4 pt-4 border-t border-aluminium">
                 <Clock className="w-5 h-5 text-racing shrink-0 mt-1" />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-technique mb-1">
+                <div className="w-full">
+                  <p className="text-xs font-bold uppercase tracking-wider text-technique mb-2">
                     Horaires d&apos;Ouverture
                   </p>
-                  <p className="text-xs text-carbone font-bold">
-                    Lundi au Vendredi : 09:00 – 19:00
-                  </p>
-                  <p className="text-xs text-technique/60">Samedi &amp; Dimanche : Fermé</p>
+                  <div className="space-y-1 text-xs">
+                    {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                      const h = hours.find((x) => x.dayOfWeek === d);
+                      const closed = !h || h.closed;
+                      return (
+                        <div
+                          key={d}
+                          className={`flex justify-between ${closed ? "text-technique/60" : "text-carbone"}`}
+                        >
+                          <span>{DAY_NAMES[d]}</span>
+                          <span className={closed ? "" : "font-bold"}>
+                            {closed ? "Fermé" : `${h.openTime} – ${h.closeTime}`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -111,7 +160,11 @@ export default function ContactPage() {
 
             {/* Embedded Natural Map */}
             <div className="rounded-2xl overflow-hidden border border-aluminium min-h-64 shadow-sm bg-white">
-              <GoogleMapEmbed minHeight={256} />
+              <GoogleMapEmbed
+                minHeight={256}
+                fullAddress={`${settings.street}, ${settings.postalCode} ${settings.city}, France`}
+                googleMapsUrl={settings.googleMapsUrl}
+              />
             </div>
           </div>
 

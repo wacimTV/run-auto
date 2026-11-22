@@ -15,8 +15,15 @@ import {
   Wrench,
 } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { GarageSettings } from "@/types";
 
-export default function HeroSection() {
+export default function HeroSection({ settings }: { settings?: GarageSettings }) {
+  const heroImage = settings?.heroImage?.trim() || "/images/hero-performance-light.jpg";
+  const flagshipEquipment = settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
+  const street = settings?.street || GARAGE_CONFIG.contact.address;
+  const postalCode = settings?.postalCode || GARAGE_CONFIG.contact.postalCode;
+  const city = settings?.city || GARAGE_CONFIG.contact.city;
+  const onlineBookingEnabled = settings?.onlineBookingEnabled ?? true;
   const quickPoles = [
     {
       href: "#bioethanol-e85",
@@ -57,10 +64,11 @@ export default function HeroSection() {
       {/* Grande photographie automobile bien visible à droite + dégradé blanc lumineux à gauche */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/hero-performance-light.jpg"
+          src={heroImage}
           alt="Véhicule sportif dans l'atelier de reprogrammation et d'électronique automobile Run Auto Marseille"
           fill
           priority
+          unoptimized={heroImage.startsWith("/api/")}
           sizes="100vw"
           className="object-cover object-right lg:object-center scale-102 transform motion-safe:transition-transform motion-safe:duration-10000 motion-safe:hover:scale-100"
         />
@@ -75,10 +83,10 @@ export default function HeroSection() {
         <div className="inline-flex flex-wrap items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-aluminium shadow-2xs mb-6">
           <span className="w-2 h-2 rounded-full bg-racing animate-pulse" />
           <span className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-carbone">
-            Atelier Spécialisé • Marseille 13004
+            Atelier Spécialisé • {city} {postalCode}
           </span>
           <span className="text-[11px] text-racing font-bold hidden sm:inline">
-            • {GARAGE_CONFIG.equipment.flagshipName}
+            • {flagshipEquipment}
           </span>
         </div>
 
@@ -92,18 +100,20 @@ export default function HeroSection() {
         {/* Editorial Subtitle en Gris Technique (#626B75) */}
         <p className="text-base sm:text-xl text-technique max-w-2xl leading-relaxed font-normal mb-9">
           Adaptation au superéthanol E85, optimisation moteur sur-mesure, diagnostic électronique avancé, recherche de pannes complexes sur schémas constructeur, codage d&apos;options, Solutions FAP et mécanique générale au{" "}
-          <strong className="text-carbone font-bold">52 boulevard de Roux (13004 Marseille)</strong>.
+          <strong className="text-carbone font-bold">{street} ({postalCode} {city})</strong>.
         </p>
 
         {/* Primary Call-to-Actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto mb-12">
-          <Link
-            href="/prendre-rendez-vous"
-            className="btn-racing px-8 py-4 rounded-xl text-sm uppercase tracking-wider font-extrabold text-center flex items-center justify-center gap-3"
-          >
-            <Calendar className="w-5 h-5" />
-            <span>Prendre rendez-vous</span>
-          </Link>
+          {onlineBookingEnabled ? (
+            <Link
+              href="/prendre-rendez-vous"
+              className="btn-racing px-8 py-4 rounded-xl text-sm uppercase tracking-wider font-extrabold text-center flex items-center justify-center gap-3"
+            >
+              <Calendar className="w-5 h-5" />
+              <span>Prendre rendez-vous</span>
+            </Link>
+          ) : null}
 
           <Link
             href="/contact#formulaire"

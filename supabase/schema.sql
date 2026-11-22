@@ -1,5 +1,14 @@
 -- SCHÉMA OFFICIEL SUPABASE POUR LE SITE GARAGE RUN AUTO (MARSEILLE)
 -- Exécutez ce script dans l'éditeur SQL de votre tableau de bord Supabase
+-- Tout est idempotent et peut être relancé sans erreur.
+
+-- ============================================================================
+-- MIGRATIONS (nettoyage des anciennes contraintes)
+-- ============================================================================
+-- L'ancien index unique empêchait slotCapacity > 1 ; remplacé par book_appointment().
+DROP INDEX IF EXISTS public.uniq_active_appointment_slot;
+-- Colonne de suivi du rappel e-mail la veille (ajout idempotent sur base existante)
+ALTER TABLE IF EXISTS public.appointments ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP WITH TIME ZONE;
 
 -- 1. Table des rendez-vous
 CREATE TABLE IF NOT EXISTS public.appointments (
@@ -23,17 +32,129 @@ CREATE TABLE IF NOT EXISTS public.appointments (
     appointment_time TIME NOT NULL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'in_progress', 'ready', 'cancelled', 'completed')),
     internal_notes TEXT,
+    reminder_sent_at TIMESTAMP WITH TIME ZONE,
     ip_address TEXT
 );
 
--- Un seul rendez-vous actif par créneau (un rendez-vous annulé libère le créneau)
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_appointment_slot
-    ON public.appointments (appointment_date, appointment_time)
-    WHERE status <> 'cancelled';
-
--- Index pour optimiser les requêtes de disponibilité
+-- Index pour optimiser les requêtes de disponibilité et le comptage par créneau
 CREATE INDEX IF NOT EXISTS idx_appointments_date_time ON public.appointments (appointment_date, appointment_time);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments (status);
+
+-- Réservation atomique respectant la capacité des ponts (settings.slotCapacity)
+CREATE OR REPLACE FUNCTION public.book_appointment(
+    p_id TEXT,
+    p_created_at TIMESTAMP WITH TIME ZONE,
+    p_service_id TEXT,
+    p_service_name TEXT,
+    p_is_custom_request BOOLEAN,
+    p_problem_description TEXT,
+    p_vehicle_make TEXT,
+    p_vehicle_model TEXT,
+    p_vehicle_year TEXT,
+    p_vehicle_fuel TEXT,
+    p_vehicle_license_plate TEXT,
+    p_client_first_name TEXT,
+    p_client_last_name TEXT,
+    p_client_phone TEXT,
+    p_client_email TEXT,
+    p_preferred_contact TEXT,
+    p_appointment_date DATE,
+    p_appointment_time TIME,
+    p_status TEXT,
+    p_internal_notes TEXT,
+    p_ip_address TEXT,
+    p_capacity INTEGER DEFAULT 1
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_active_count INTEGER;
+    v_lock_key BIGINT;
+BEGIN
+    v_lock_key := hashtext(p_appointment_date::TEXT || '|' || to_char(p_appointment_time, 'HH24:MI'))::BIGINT;
+    PERFORM pg_advisory_xact_lock(v_lock_key);
+
+    IF p_status <> 'cancelled' THEN
+        SELECT COUNT(*) INTO v_active_count
+        FROM public.appointments
+        WHERE appointment_date = p_appointment_date
+          AND appointment_time = p_appointment_time
+          AND status <> 'cancelled';
+
+        IF v_active_count >= GREATEST(1, COALESCE(p_capacity, 1)) THEN
+            RAISE EXCEPTION 'SLOT_FULL' USING ERRCODE = 'P0001';
+        END IF;
+    END IF;
+
+    INSERT INTO public.appointments (
+        id, created_at, service_id, service_name, is_custom_request, problem_description,
+        vehicle_make, vehicle_model, vehicle_year, vehicle_fuel, vehicle_license_plate,
+        client_first_name, client_last_name, client_phone, client_email, preferred_contact,
+        appointment_date, appointment_time, status, internal_notes, ip_address
+    ) VALUES (
+        p_id, p_created_at, p_service_id, p_service_name, p_is_custom_request, p_problem_description,
+        p_vehicle_make, p_vehicle_model, p_vehicle_year, p_vehicle_fuel, p_vehicle_license_plate,
+        p_client_first_name, p_client_last_name, p_client_phone, p_client_email, p_preferred_contact,
+        p_appointment_date, p_appointment_time, p_status, p_internal_notes, p_ip_address
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.book_appointment(TEXT, TIMESTAMP WITH TIME ZONE, TEXT, TEXT, BOOLEAN, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, TIME, TEXT, TEXT, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.book_appointment(TEXT, TIMESTAMP WITH TIME ZONE, TEXT, TEXT, BOOLEAN, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, TIME, TEXT, TEXT, TEXT, INTEGER) TO service_role;
+
+-- Mise à jour atomique du statut avec vérification de capacité lors d'une réactivation
+CREATE OR REPLACE FUNCTION public.update_appointment_status_checked(
+    p_id TEXT,
+    p_status TEXT,
+    p_internal_notes TEXT,
+    p_capacity INTEGER DEFAULT 1
+)
+RETURNS SETOF public.appointments
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_apt public.appointments%ROWTYPE;
+    v_active_count INTEGER;
+    v_lock_key BIGINT;
+BEGIN
+    SELECT * INTO v_apt FROM public.appointments WHERE id = p_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    IF v_apt.status = 'cancelled' AND p_status <> 'cancelled' THEN
+        v_lock_key := hashtext(v_apt.appointment_date::TEXT || '|' || to_char(v_apt.appointment_time, 'HH24:MI'))::BIGINT;
+        PERFORM pg_advisory_xact_lock(v_lock_key);
+
+        SELECT COUNT(*) INTO v_active_count
+        FROM public.appointments
+        WHERE appointment_date = v_apt.appointment_date
+          AND appointment_time = v_apt.appointment_time
+          AND status <> 'cancelled'
+          AND id <> p_id;
+
+        IF v_active_count >= GREATEST(1, COALESCE(p_capacity, 1)) THEN
+            RAISE EXCEPTION 'SLOT_FULL' USING ERRCODE = 'P0001';
+        END IF;
+    END IF;
+
+    RETURN QUERY
+    UPDATE public.appointments
+    SET status = p_status,
+        internal_notes = p_internal_notes
+    WHERE id = p_id
+    RETURNING *;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.update_appointment_status_checked(TEXT, TEXT, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_appointment_status_checked(TEXT, TEXT, TEXT, INTEGER) TO service_role;
 
 -- 2. Table des messages de contact
 CREATE TABLE IF NOT EXISTS public.contact_messages (
@@ -62,6 +183,15 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+-- 3ter. Identifiants administrateur chiffrés (bcrypt) et version de session
+CREATE TABLE IF NOT EXISTS public.admin_credentials (
+    id TEXT PRIMARY KEY DEFAULT 'main',
+    password_hash TEXT NOT NULL,
+    session_version INTEGER NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+ALTER TABLE public.admin_credentials ENABLE ROW LEVEL SECURITY;
 
 -- Activation de Row Level Security (RLS) sans aucune politique publique :
 -- seul le serveur Next.js (clé service_role, jamais exposée au navigateur) peut lire et écrire.

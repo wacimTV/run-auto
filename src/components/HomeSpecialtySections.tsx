@@ -18,6 +18,8 @@ import {
   CircuitBoard,
 } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import type { GarageSettings } from "@/types";
+import type { PublicServiceItem } from "@/lib/siteData";
 
 /**
  * Sections spécialisées de la page d'accueil Run Auto — Palette « Racing Light » :
@@ -27,10 +29,23 @@ import { GARAGE_CONFIG } from "@/config/garage";
  * - Textes secondaires en Gris technique (#626B75)
  * - Rouge racing (#D71920) & Vert E85 (#198754) réservé au Bioéthanol E85
  */
-export default function HomeSpecialtySections() {
+export default function HomeSpecialtySections({
+  settings,
+  services,
+}: {
+  settings?: GarageSettings;
+  services?: PublicServiceItem[];
+}) {
   const satisfactionText =
     GARAGE_CONFIG.marketing.verifiedSatisfactionClaim ||
     GARAGE_CONFIG.marketing.satisfactionFallback;
+  const flagshipEquipment = settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
+  const supportedBrands = settings?.supportedBrands;
+  const availableSlugs = new Set((services ?? []).map((s) => s.slug));
+  const hasService = (slug: string) => !services || availableSlugs.has(slug);
+  const mechanicServices = (services ?? []).filter(
+    (s) => s.categoryId === "Mécanique générale" || s.slug === "batterie-demarrage"
+  );
 
   return (
     <div className="bg-white text-carbone">
@@ -502,7 +517,7 @@ export default function HomeSpecialtySections() {
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-racing-soft border border-racing/25 text-xs text-racing font-extrabold uppercase tracking-wider">
                 <Cpu className="w-3.5 h-3.5 text-racing" />
-                <span>Technologie Embarquée • {GARAGE_CONFIG.equipment.flagshipName}</span>
+                <span>Technologie Embarquée • {flagshipEquipment}</span>
               </div>
 
               <h2 className="text-3xl sm:text-5xl font-extrabold text-carbone leading-tight font-display">
@@ -512,7 +527,7 @@ export default function HomeSpecialtySections() {
 
               <p className="text-base text-technique leading-relaxed">
                 L&apos;atelier Run Auto est équipé du système professionnel{" "}
-                <strong className="text-carbone">{GARAGE_CONFIG.equipment.flagshipName}</strong>. Cet outil permet de réaliser des opérations avancées de diagnostic automobile, selon les compatibilités et fonctionnalités disponibles sur chaque véhicule.
+                <strong className="text-carbone">{flagshipEquipment}</strong>. Cet outil permet de réaliser des opérations avancées de diagnostic automobile, selon les compatibilités et fonctionnalités disponibles sur chaque véhicule.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -536,7 +551,7 @@ export default function HomeSpecialtySections() {
             <div className="lg:col-span-5 relative h-[430px] rounded-3xl overflow-hidden border border-aluminium shadow-lg">
               <Image
                 src="/images/diagnostic-tool-light.jpg"
-                alt="Valise de diagnostic automobile professionnelle TOPDON Phoenix Max utilisée chez Run Auto"
+                alt={`Valise de diagnostic automobile professionnelle ${flagshipEquipment} utilisée chez Run Auto`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 42vw"
                 className="object-cover"
@@ -547,7 +562,7 @@ export default function HomeSpecialtySections() {
                   Équipement Professionnel Atelier
                 </span>
                 <p className="text-sm font-extrabold text-carbone font-display">
-                  {GARAGE_CONFIG.equipment.flagshipName}
+                  {flagshipEquipment}
                 </p>
                 <p className="text-xs text-technique mt-0.5">
                   Communication avancée avec les calculateurs, tests actionneurs, codage et adaptations compatibles.
@@ -712,53 +727,52 @@ export default function HomeSpecialtySections() {
               </h2>
             </div>
             <p className="text-sm text-technique max-w-md">
-              Un moteur optimisé ou diagnostiqué avec rigueur mérite une mécanique irréprochable : freinage, embrayage, distribution, train roulant et révision constructeur.
+              {supportedBrands
+                ? `${supportedBrands} — freinage, embrayage, distribution, train roulant et révision constructeur.`
+                : "Un moteur optimisé ou diagnostiqué avec rigueur mérite une mécanique irréprochable : freinage, embrayage, distribution, train roulant et révision constructeur."}
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            {[
-              {
-                title: "Plaquettes & disques de frein",
-                desc: "Contrôle d'usure, remplacement plaquettes/disques et purge du liquide de frein.",
-                href: "/prestations/freinage-securite",
-              },
-              {
-                title: "Remplacement d'embrayage",
-                desc: "Diagnostic patinage ou commande hydraulique et remplacement du kit d'embrayage.",
-                href: "/prestations/mecanique-generale",
-              },
-              {
-                title: "Kit de distribution",
-                desc: "Courroie de distribution, galets tendeurs, pompe à eau et calage moteur précis.",
-                href: "/prestations/distribution-mecanique",
-              },
-              {
-                title: "Intervention sur le train roulant",
-                desc: "Rotules, biellettes, triangles, silentblocs et amortisseurs.",
-                href: "/prestations/mecanique-generale",
-              },
-              {
-                title: "Entretien mécanique & vidange",
-                desc: "Révision selon le plan constructeur, remplacement des filtres et contrôles.",
-                href: "/prestations/entretien-revision",
-              },
-              {
-                title: "Réparation mécanique",
-                desc: "Remise en état des organes moteur, refroidissement et périphériques.",
-                href: "/prestations/mecanique-generale",
-              },
-              {
-                title: "Recherche de panne mécanique",
-                desc: "Identification méthodique de l'origine d'un bruit, d'une fuite ou d'une vibration.",
-                href: "/prestations/mecanique-generale",
-              },
-              {
-                title: "Batterie & circuit de charge",
-                desc: "Test alternateur/démarreur et remplacement batterie AGM/EFB avec initialisation.",
-                href: "/prestations/batterie-demarrage",
-              },
-            ].map((item) => (
+            {(mechanicServices.length > 0
+              ? mechanicServices.map((srv) => ({
+                  title: srv.title,
+                  desc: srv.shortDescription,
+                  href: `/prestations/${srv.slug}`,
+                  price: srv.displayPrice,
+                  badge: srv.badge,
+                }))
+              : [
+                  {
+                    title: "Plaquettes & disques de frein",
+                    desc: "Contrôle d'usure, remplacement plaquettes/disques et purge du liquide de frein.",
+                    href: "/prestations/freinage-securite",
+                    price: "",
+                    badge: "",
+                  },
+                  {
+                    title: "Remplacement d'embrayage",
+                    desc: "Diagnostic patinage ou commande hydraulique et remplacement du kit d'embrayage.",
+                    href: "/prestations/mecanique-generale",
+                    price: "",
+                    badge: "",
+                  },
+                  {
+                    title: "Kit de distribution",
+                    desc: "Courroie de distribution, galets tendeurs, pompe à eau et calage moteur précis.",
+                    href: "/prestations/distribution-mecanique",
+                    price: "",
+                    badge: "",
+                  },
+                  {
+                    title: "Entretien mécanique & vidange",
+                    desc: "Révision selon le plan constructeur, remplacement des filtres et contrôles.",
+                    href: "/prestations/entretien-revision",
+                    price: "",
+                    badge: "",
+                  },
+                ].filter((it) => hasService(it.href.replace("/prestations/", "")))
+            ).map((item) => (
               <Link
                 key={item.title}
                 href={item.href}
@@ -775,6 +789,9 @@ export default function HomeSpecialtySections() {
                     {item.title}
                   </h3>
                   <p className="text-xs text-technique leading-relaxed">{item.desc}</p>
+                  {item.price ? (
+                    <p className="text-[11px] font-bold text-racing mt-2">{item.price}</p>
+                  ) : null}
                 </div>
               </Link>
             ))}

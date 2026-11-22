@@ -1,9 +1,10 @@
 import React from "react";
 import type { Metadata } from "next";
 import ServicesCatalogue from "@/components/ServicesCatalogue";
+import OffersSection from "@/components/OffersSection";
 import Link from "next/link";
 import { ShieldCheck, Cpu, Wrench, Fuel, Gauge, FileText, Calendar } from "lucide-react";
-import { GARAGE_CONFIG } from "@/config/garage";
+import { getSiteData, toServiceCards } from "@/lib/siteData";
 
 export const metadata: Metadata = {
   title:
@@ -12,19 +13,21 @@ export const metadata: Metadata = {
     "Découvrez toutes les prestations de l'atelier Run Auto à Marseille (13004) : conversion bioéthanol E85, reprogrammation moteur, diagnostic électronique TOPDON Phoenix Max, recherche de panne sur schémas électriques, ajout d'options, Solutions FAP et mécanique générale.",
 };
 
-export default function PrestationsPage() {
+export default async function PrestationsPage() {
+  const { settings, categories, services, offers } = await getSiteData();
+
   return (
     <div className="pt-12 pb-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 mb-6">
         <div className="max-w-3xl">
           <span className="text-xs font-extrabold tracking-widest uppercase text-racing mb-2 block">
-            Pôles d&apos;Expertise • Marseille 13004
+            Pôles d&apos;Expertise • {settings.city} {settings.postalCode}
           </span>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-carbone mb-6 font-display">
-            Nos Prestations Automobiles à Marseille
+            Nos Prestations Automobiles à {settings.city}
           </h1>
           <p className="text-base text-technique leading-relaxed">
-            Run Auto réunit dans un même atelier au 52 boulevard de Roux (13004 Marseille) l&apos;adaptation au superéthanol E85, la reprogrammation moteur, l&apos;électronique automobile avancée, la recherche de pannes complexes sur schémas électriques, les Solutions FAP conformes et la mécanique générale.
+            {settings.name} réunit dans un même atelier au {settings.street} ({settings.postalCode} {settings.city}) l&apos;adaptation au superéthanol E85, la reprogrammation moteur, l&apos;électronique automobile avancée, la recherche de pannes complexes sur schémas électriques, les Solutions FAP conformes et la mécanique générale.
           </p>
         </div>
 
@@ -45,7 +48,7 @@ export default function PrestationsPage() {
           <div className="p-4 rounded-2xl bg-glacier border border-aluminium flex items-center gap-3">
             <Cpu className="w-5 h-5 text-racing shrink-0" />
             <span className="text-xs text-carbone font-bold">
-              Équipement {GARAGE_CONFIG.equipment.flagshipName} &amp; schémas constructeur
+              Équipement {settings.flagshipEquipment} &amp; schémas constructeur
             </span>
           </div>
           <div className="p-4 rounded-2xl bg-glacier border border-aluminium flex items-center gap-3">
@@ -57,7 +60,13 @@ export default function PrestationsPage() {
         </div>
       </div>
 
-      <ServicesCatalogue />
+      <ServicesCatalogue
+        services={toServiceCards(services)}
+        categories={categories}
+        onlineBookingEnabled={settings.onlineBookingEnabled}
+      />
+
+      <OffersSection offers={offers} />
 
       {/* Scope clarification & CTA */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 mt-10">

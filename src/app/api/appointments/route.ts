@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { isSlotAvailable } from "@/lib/availability";
-import { verifyAdminSession } from "@/lib/auth";
 import { sendAppointmentNotifications } from "@/lib/email";
-import { GARAGE_CONFIG } from "@/config/garage";
+import { getSiteData } from "@/lib/siteData";
 import {
   cleanString,
   DATE_REGEX,
@@ -18,16 +17,6 @@ import { Appointment, PreferredContactMethod } from "@/types";
 
 const CUSTOM_SERVICE_NAME = "Demande sur-mesure / Diagnostic approfondi";
 const ALLOWED_CONTACT: PreferredContactMethod[] = ["phone", "sms", "email"];
-
-export async function GET() {
-  const isAdmin = await verifyAdminSession();
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  }
-
-  const appointments = await storage.getAppointments();
-  return NextResponse.json({ appointments });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,8 +56,16 @@ export async function POST(request: NextRequest) {
     const date = cleanString(body.date, 10);
     const time = cleanString(body.time, 5);
 
-    // Résolution de la prestation côté serveur (le nom n'est jamais pris tel quel du client)
-    const service = GARAGE_CONFIG.services.find((s) => s.id === rawServiceId);
+    // Résolution de la prestation côté serveur depuis les prestations actives de l'admin
+    const { services: activeServices, settings } = await getSiteData();
+    if (!settings.onlineBookingEnabled) {
+      return NextResponse.json(
+        { error: "La prise de rendez-vous en ligne est momentanément désactivée. Merci de nous appeler." },
+        { status: 403 }
+      );
+    }
+
+    const service = activeServices.find((s) => s.id === rawServiceId);
     let serviceId: string;
     let serviceName: string;
     if (isCustomRequest || rawServiceId === "custom") {
@@ -79,7 +76,7 @@ export async function POST(request: NextRequest) {
       serviceName = service.title;
     } else {
       return NextResponse.json(
-        { error: "Prestation inconnue. Veuillez sélectionner une prestation dans la liste." },
+        { error: "Prestation indisponible ou inconnue. Veuillez sélectionner une prestation dans la liste." },
         { status: 400 }
       );
     }

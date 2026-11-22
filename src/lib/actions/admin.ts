@@ -1,29 +1,44 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   clearAdminSession,
   isAdminConfigured,
+  MIN_NEW_PASSWORD_LENGTH,
   requireAdmin,
   setAdminSession,
+  updateAdminPassword,
   validatePassword,
 } from "@/lib/auth";
 import { rateLimit, resetRateLimit } from "@/lib/rateLimit";
-import { getClientIp } from "@/lib/validation";
+import {
+  clampNumber,
+  cleanString,
+  DATE_REGEX,
+  getClientIp,
+  TIME_REGEX,
+  validateHttpsUrl,
+} from "@/lib/validation";
 import { storage } from "@/lib/storage";
 import { saveUploadedImage } from "@/lib/upload";
 import { sendAppointmentStatusEmail } from "@/lib/email";
+import { SITE_TAG } from "@/lib/siteData";
 import { Appointment, AppointmentStatus } from "@/types";
 
 function invalidateSite() {
+  updateTag(SITE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/admin");
-  revalidatePath("/prestations");
+  revalidatePath("/prestations", "layout");
   revalidatePath("/le-garage");
   revalidatePath("/contact");
   revalidatePath("/prendre-rendez-vous");
+  revalidatePath("/faq");
+  revalidatePath("/mentions-legales");
+  revalidatePath("/politique-confidentialite");
+  revalidatePath("/sitemap.xml");
 }
 
 function slugify(s: string) {
@@ -33,8 +48,17 @@ function slugify(s: string) {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || `srv-${Date.now()}`
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || `srv-${Date.now()}`
   );
+}
+
+function parseOptionalPriceCents(raw: unknown): number | null {
+  const str = cleanString(raw, 20).replace(",", ".");
+  if (!str) return null;
+  const n = Number(str);
+  if (Number.isNaN(n) || !Number.isFinite(n) || n < 0 || n > 100000) return null;
+  return Math.round(n * 100);
 }
 
 export type LoginState = { error?: string };
@@ -47,34 +71,39 @@ export async function loginAdmin(
   const ip = getClientIp(hdrs);
   const rlKey = `admin-login:${ip}`;
 
-  if (!isAdminConfigured()) {
-    return {
-      error:
-        "Compte administrateur non configuré (vérifiez ADMIN_PASSWORD dans .env.local).",
-    };
-  }
-
   if (!(await rateLimit(rlKey, 8, 15 * 60))) {
     return {
       error: "Trop de tentatives de connexion. Réessayez dans 15 minutes.",
     };
   }
 
-  const email = String(formData.get("email") ?? "").trim();
+  const email = cleanString(formData.get("email"), 120);
   const password = String(formData.get("password") ?? "");
-
   const expectedEmail = process.env.ADMIN_EMAIL?.trim() ?? "";
   const emailOk =
     !expectedEmail || email.toLowerCase() === expectedEmail.toLowerCase();
-  const passOk = emailOk && password.length <= 200 && validatePassword(password);
 
-  if (!emailOk || !passOk) {
-    return { error: "Identifiants administrateur incorrects." };
-  }
+  try {
+    if (!(await isAdminConfigured())) {
+      return {
+        error:
+          "Compte administrateur non configuré (vérifiez ADMIN_PASSWORD dans les variables d'environnement).",
+      };
+    }
 
-  const sessionOk = await setAdminSession();
-  if (!sessionOk) {
-    return { error: "Impossible d'ouvrir la session administrateur." };
+    const passOk =
+      emailOk && password.length <= 200 && (await validatePassword(password));
+    if (!emailOk || !passOk) {
+      return { error: "Identifiants administrateur incorrects." };
+    }
+
+    const sessionOk = await setAdminSession();
+    if (!sessionOk) {
+      return { error: "Impossible d'ouvrir la session administrateur." };
+    }
+  } catch {
+    // Base de données momentanément indisponible : on refuse sans révéler de détail
+    return { error: "Connexion impossible pour le moment. Réessayez dans quelques minutes." };
   }
 
   await resetRateLimit(rlKey);
@@ -84,6 +113,45 @@ export async function loginAdmin(
 export async function logoutAdmin() {
   await clearAdminSession();
   redirect("/admin/login");
+}
+
+export type PasswordChangeState = { error?: string; success?: string };
+
+export async function changePasswordAction(
+  _prev: PasswordChangeState,
+  formData: FormData
+): Promise<PasswordChangeState> {
+  await requireAdmin();
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return { error: "Veuillez remplir les trois champs." };
+  }
+  if (newPassword.length < MIN_NEW_PASSWORD_LENGTH) {
+    return {
+      error: `Le nouveau mot de passe doit contenir au moins ${MIN_NEW_PASSWORD_LENGTH} caractères.`,
+    };
+  }
+  if (newPassword !== confirmPassword) {
+    return { error: "La confirmation ne correspond pas au nouveau mot de passe." };
+  }
+
+  try {
+    const res = await updateAdminPassword(currentPassword, newPassword);
+    if (!res.ok) return { error: res.error };
+    return {
+      success:
+        "Mot de passe mis à jour et chiffré. Toutes les autres sessions ont été déconnectées.",
+    };
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error
+        ? err.message
+        : "Impossible d'enregistrer le nouveau mot de passe.";
+    return { error: msg };
+  }
 }
 
 /* ── 0 & 1. Suivi Atelier (Ponts) & Rendez-vous ──────────────────────── */
@@ -99,17 +167,28 @@ const VALID_APPOINTMENT_STATUSES: AppointmentStatus[] = [
 
 export async function updateAppointmentStatusAction(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const status = String(formData.get("status") ?? "").trim() as AppointmentStatus;
+  const id = cleanString(formData.get("id"), 80);
+  const status = cleanString(formData.get("status"), 20) as AppointmentStatus;
   if (!id || !VALID_APPOINTMENT_STATUSES.includes(status)) return;
 
-  const updated = await storage.updateAppointmentDetails(id, { status });
+  let updated: Appointment | null;
+  try {
+    updated = await storage.updateAppointmentDetails(id, { status });
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error ? err.message : "Impossible de modifier ce rendez-vous.";
+    redirect(`/admin?adminError=${encodeURIComponent(msg)}#sec-reservations`);
+  }
+
   if (
     updated &&
-    (status === "confirmed" || status === "ready" || status === "cancelled")
+    (status === "confirmed" ||
+      status === "ready" ||
+      status === "completed" ||
+      status === "cancelled")
   ) {
     const state = await storage.getSiteAdminState();
-    await sendAppointmentStatusEmail(updated, state.settings.name);
+    await sendAppointmentStatusEmail(updated, state.settings);
   }
 
   invalidateSite();
@@ -117,21 +196,15 @@ export async function updateAppointmentStatusAction(formData: FormData) {
 
 export async function updateAppointmentMechanicSheet(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
 
-  const mileageKm = String(formData.get("mileageKm") ?? "").trim();
-  const obdCodes = String(formData.get("obdCodes") ?? "").trim();
-  const internalNotes = String(formData.get("internalNotes") ?? "").trim();
-  const quoteStr = String(formData.get("quoteAmount") ?? "")
-    .trim()
-    .replace(",", ".");
-  const quoteAmountCents =
-    quoteStr !== "" && !Number.isNaN(Number(quoteStr))
-      ? Math.round(Number(quoteStr) * 100)
-      : null;
+  const mileageKm = cleanString(formData.get("mileageKm"), 40);
+  const obdCodes = cleanString(formData.get("obdCodes"), 200);
+  const internalNotes = cleanString(formData.get("internalNotes"), 2000);
+  const quoteAmountCents = parseOptionalPriceCents(formData.get("quoteAmount"));
 
-  const statusRaw = String(formData.get("status") ?? "").trim() as AppointmentStatus;
+  const statusRaw = cleanString(formData.get("status"), 20) as AppointmentStatus;
   const status = VALID_APPOINTMENT_STATUSES.includes(statusRaw)
     ? statusRaw
     : undefined;
@@ -149,41 +222,34 @@ export async function updateAppointmentMechanicSheet(formData: FormData) {
 
 export async function createWorkshopIntake(formData: FormData) {
   await requireAdmin();
-  const firstName = String(formData.get("firstName") ?? "").trim() || "Client";
-  const lastName = String(formData.get("lastName") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const make = String(formData.get("make") ?? "").trim();
-  const model = String(formData.get("model") ?? "").trim();
-  const year = String(formData.get("year") ?? "").trim();
-  const fuel = String(formData.get("fuel") ?? "Essence").trim();
-  const licensePlate = String(formData.get("licensePlate") ?? "")
-    .trim()
-    .toUpperCase();
-  const serviceId = String(formData.get("serviceId") ?? "").trim();
-  const date = String(formData.get("date") ?? "").trim();
-  const time = String(formData.get("time") ?? "09:00").trim();
-  const problemDescription = String(
-    formData.get("problemDescription") ?? ""
-  ).trim();
-  const mileageKm = String(formData.get("mileageKm") ?? "").trim();
-  const obdCodes = String(formData.get("obdCodes") ?? "").trim();
-  const internalNotes = String(formData.get("internalNotes") ?? "").trim();
-  const quoteStr = String(formData.get("quoteAmount") ?? "")
-    .trim()
-    .replace(",", ".");
-  const quoteAmountCents =
-    quoteStr !== "" && !Number.isNaN(Number(quoteStr))
-      ? Math.round(Number(quoteStr) * 100)
-      : null;
-  const statusRaw = String(
-    formData.get("status") ?? "in_progress"
-  ).trim() as AppointmentStatus;
+  const firstName = cleanString(formData.get("firstName"), 60) || "Client";
+  const lastName = cleanString(formData.get("lastName"), 60);
+  const phone = cleanString(formData.get("phone"), 25);
+  const email = cleanString(formData.get("email"), 120).toLowerCase();
+  const make = cleanString(formData.get("make"), 60);
+  const model = cleanString(formData.get("model"), 80);
+  const year = cleanString(formData.get("year"), 4);
+  const fuel = cleanString(formData.get("fuel"), 40) || "Essence";
+  const licensePlate = cleanString(formData.get("licensePlate"), 20).toUpperCase();
+  const serviceId = cleanString(formData.get("serviceId"), 80);
+  const date = cleanString(formData.get("date"), 10);
+  const time = cleanString(formData.get("time"), 5) || "09:00";
+  const problemDescription = cleanString(formData.get("problemDescription"), 2000);
+  const mileageKm = cleanString(formData.get("mileageKm"), 40);
+  const obdCodes = cleanString(formData.get("obdCodes"), 200);
+  const internalNotes = cleanString(formData.get("internalNotes"), 2000);
+  const quoteAmountCents = parseOptionalPriceCents(formData.get("quoteAmount"));
+  const statusRaw = cleanString(
+    formData.get("status"),
+    20
+  ) as AppointmentStatus;
   const status = VALID_APPOINTMENT_STATUSES.includes(statusRaw)
     ? statusRaw
     : "in_progress";
 
-  if (!lastName || !phone || !make || !model || !date) return;
+  if (!lastName || !phone || !make || !model || !DATE_REGEX.test(date) || !TIME_REGEX.test(time)) {
+    return;
+  }
 
   const state = await storage.getSiteAdminState();
   const srv = state.services.find((s) => s.id === serviceId);
@@ -207,7 +273,7 @@ export async function createWorkshopIntake(formData: FormData) {
       firstName,
       lastName,
       phone,
-      email: email || "atelier@runauto-marseille.fr",
+      email: email || state.settings.email || "atelier@runauto-marseille.fr",
       preferredContact: "phone",
     },
     date,
@@ -221,12 +287,9 @@ export async function createWorkshopIntake(formData: FormData) {
 
   try {
     await storage.createAppointment(apt);
-  } catch {
-    // En cas de créneau déjà occupé lors d'une saisie manuelle comptoir, décaler d'une minute symbolique ou enregistrer
-    await storage.createAppointment({
-      ...apt,
-      time: `${time.slice(0, 3)}${String(Math.floor(Math.random() * 50) + 10).padStart(2, "0")}`,
-    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Créneau complet.";
+    redirect(`/admin?adminError=${encodeURIComponent(msg)}#sec-atelier`);
   }
 
   invalidateSite();
@@ -234,7 +297,7 @@ export async function createWorkshopIntake(formData: FormData) {
 
 export async function deleteAppointmentAction(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
   await storage.deleteAppointment(id);
   invalidateSite();
@@ -244,8 +307,8 @@ export async function deleteAppointmentAction(formData: FormData) {
 
 export async function toggleMessageStatus(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const status = String(formData.get("status") ?? "read").trim() as
+  const id = cleanString(formData.get("id"), 80);
+  const status = cleanString(formData.get("status"), 20) as
     | "new"
     | "read"
     | "replied";
@@ -256,7 +319,7 @@ export async function toggleMessageStatus(formData: FormData) {
 
 export async function deleteContactMessageAction(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
   await storage.deleteContact(id);
   revalidatePath("/admin");
@@ -266,9 +329,9 @@ export async function deleteContactMessageAction(formData: FormData) {
 
 export async function createCategory(formData: FormData) {
   await requireAdmin();
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const sort = Number(formData.get("sort") ?? 0);
+  const name = cleanString(formData.get("name"), 80);
+  const description = cleanString(formData.get("description"), 300);
+  const sort = Math.round(clampNumber(formData.get("sort"), 0, 1000, 0));
   if (!name) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -289,10 +352,10 @@ export async function createCategory(formData: FormData) {
 
 export async function updateCategory(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const sort = Number(formData.get("sort") ?? 0);
+  const id = cleanString(formData.get("id"), 80);
+  const name = cleanString(formData.get("name"), 80);
+  const description = cleanString(formData.get("description"), 300);
+  const sort = Math.round(clampNumber(formData.get("sort"), 0, 1000, 0));
   if (!id || !name) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -308,7 +371,7 @@ export async function updateCategory(formData: FormData) {
 
 export async function deleteCategory(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -320,27 +383,23 @@ export async function deleteCategory(formData: FormData) {
 
 export async function createServiceItem(formData: FormData) {
   await requireAdmin();
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const shortDescription = String(formData.get("shortDescription") ?? "").trim();
+  const categoryId = cleanString(formData.get("categoryId"), 80);
+  const title = cleanString(formData.get("title"), 120);
+  const shortDescription = cleanString(formData.get("shortDescription"), 400);
   const priceNotice =
-    String(formData.get("priceNotice") ?? "").trim() || "Sur devis gratuit";
-  const priceStr = String(formData.get("price") ?? "").trim().replace(",", ".");
-  const priceCents =
-    priceStr !== "" && !Number.isNaN(Number(priceStr))
-      ? Math.round(Number(priceStr) * 100)
-      : null;
-  const estimatedDurationMinutes = Math.max(
-    15,
-    Number(formData.get("estimatedDurationMinutes") ?? 60)
+    cleanString(formData.get("priceNotice"), 80) || "Sur devis gratuit";
+  const priceCents = parseOptionalPriceCents(formData.get("price"));
+  const estimatedDurationMinutes = Math.round(
+    clampNumber(formData.get("estimatedDurationMinutes"), 15, 1440, 60)
   );
-  const durationLabel = String(formData.get("durationLabel") ?? "").trim();
-  const badge = String(formData.get("badge") ?? "").trim();
-  const equipmentNote = String(formData.get("equipmentNote") ?? "").trim();
+  const durationLabel = cleanString(formData.get("durationLabel"), 80);
+  const badge = cleanString(formData.get("badge"), 40);
+  const equipmentNote = cleanString(formData.get("equipmentNote"), 160);
   const compatibleFuels = formData
     .getAll("compatibleFuels")
-    .map((v) => String(v).trim())
-    .filter(Boolean);
+    .map((v) => cleanString(v, 30))
+    .filter(Boolean)
+    .slice(0, 12);
   const featured = formData.get("featured") === "on";
   const available = formData.get("available") !== "off";
   const file = formData.get("imageFile") as File | null;
@@ -349,13 +408,15 @@ export async function createServiceItem(formData: FormData) {
   const uploaded = await saveUploadedImage(file);
 
   await storage.saveSiteAdminState((prev) => {
-    const slug = slugify(title);
+    const baseSlug = slugify(title);
+    const slugExists = prev.services.some((s) => s.slug === baseSlug);
+    const slug = slugExists ? `${baseSlug}-${Date.now().toString(36)}` : baseSlug;
     return {
       ...prev,
       services: [
         ...prev.services,
         {
-          id: `srv-${slug}-${Date.now().toString(36)}`,
+          id: `srv-${baseSlug}-${Date.now().toString(36)}`,
           slug,
           categoryId,
           title,
@@ -380,31 +441,27 @@ export async function createServiceItem(formData: FormData) {
 
 export async function updateServiceItem(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const shortDescription = String(formData.get("shortDescription") ?? "").trim();
+  const id = cleanString(formData.get("id"), 100);
+  const categoryId = cleanString(formData.get("categoryId"), 80);
+  const title = cleanString(formData.get("title"), 120);
+  const shortDescription = cleanString(formData.get("shortDescription"), 400);
   const priceNotice =
-    String(formData.get("priceNotice") ?? "").trim() || "Sur devis gratuit";
-  const priceStr = String(formData.get("price") ?? "").trim().replace(",", ".");
-  const priceCents =
-    priceStr !== "" && !Number.isNaN(Number(priceStr))
-      ? Math.round(Number(priceStr) * 100)
-      : null;
-  const estimatedDurationMinutes = Math.max(
-    15,
-    Number(formData.get("estimatedDurationMinutes") ?? 60)
+    cleanString(formData.get("priceNotice"), 80) || "Sur devis gratuit";
+  const priceCents = parseOptionalPriceCents(formData.get("price"));
+  const estimatedDurationMinutes = Math.round(
+    clampNumber(formData.get("estimatedDurationMinutes"), 15, 1440, 60)
   );
-  const durationLabel = String(formData.get("durationLabel") ?? "").trim();
-  const badge = String(formData.get("badge") ?? "").trim();
-  const equipmentNote = String(formData.get("equipmentNote") ?? "").trim();
+  const durationLabel = cleanString(formData.get("durationLabel"), 80);
+  const badge = cleanString(formData.get("badge"), 40);
+  const equipmentNote = cleanString(formData.get("equipmentNote"), 160);
   const compatibleFuels = formData
     .getAll("compatibleFuels")
-    .map((v) => String(v).trim())
-    .filter(Boolean);
+    .map((v) => cleanString(v, 30))
+    .filter(Boolean)
+    .slice(0, 12);
   const featured = formData.get("featured") === "on";
   const available = formData.get("available") === "on";
-  const sort = Number(formData.get("sort") ?? 0);
+  const sort = Math.round(clampNumber(formData.get("sort"), 0, 1000, 0));
   const clearImage = formData.get("clearImage") === "on";
   const file = formData.get("imageFile") as File | null;
 
@@ -442,7 +499,7 @@ export async function updateServiceItem(formData: FormData) {
 
 export async function deleteServiceItem(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 100);
   if (!id) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -456,17 +513,13 @@ export async function deleteServiceItem(formData: FormData) {
 
 export async function saveWorkshopOffer(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const badge = String(formData.get("badge") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const priceStr = String(formData.get("price") ?? "").trim().replace(",", ".");
-  const priceCents =
-    priceStr !== "" && !Number.isNaN(Number(priceStr))
-      ? Math.round(Number(priceStr) * 100)
-      : null;
+  const id = cleanString(formData.get("id"), 80);
+  const title = cleanString(formData.get("title"), 120);
+  const badge = cleanString(formData.get("badge"), 40);
+  const description = cleanString(formData.get("description"), 400);
+  const priceCents = parseOptionalPriceCents(formData.get("price"));
   const active = id ? formData.get("active") === "on" : true;
-  const sort = Number(formData.get("sort") ?? 0);
+  const sort = Math.round(clampNumber(formData.get("sort"), 0, 1000, 0));
   if (!title) return;
 
   await storage.saveSiteAdminState((prev) => {
@@ -503,7 +556,7 @@ export async function saveWorkshopOffer(formData: FormData) {
 
 export async function deleteWorkshopOffer(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -517,18 +570,23 @@ export async function deleteWorkshopOffer(formData: FormData) {
 
 export async function updateHoursAndCapacity(formData: FormData) {
   await requireAdmin();
-  const slotCapacity = Math.max(1, Number(formData.get("slotCapacity") ?? 1));
-  const bookingLeadHours = Math.max(
-    1,
-    Number(formData.get("bookingLeadHours") ?? 2)
+  const slotCapacity = Math.round(
+    clampNumber(formData.get("slotCapacity"), 1, 10, 1)
+  );
+  const bookingLeadHours = Math.round(
+    clampNumber(formData.get("bookingLeadHours"), 0, 168, 2)
   );
 
-  const hours = [1, 2, 3, 4, 5, 6, 0].map((d) => ({
-    dayOfWeek: d,
-    openTime: String(formData.get(`open_${d}`) ?? "09:00"),
-    closeTime: String(formData.get(`close_${d}`) ?? "19:00"),
-    closed: formData.get(`closed_${d}`) === "on",
-  }));
+  const hours = [1, 2, 3, 4, 5, 6, 0].map((d) => {
+    const rawOpen = cleanString(formData.get(`open_${d}`), 5);
+    const rawClose = cleanString(formData.get(`close_${d}`), 5);
+    return {
+      dayOfWeek: d,
+      openTime: TIME_REGEX.test(rawOpen) ? rawOpen : "09:00",
+      closeTime: TIME_REGEX.test(rawClose) ? rawClose : "19:00",
+      closed: formData.get(`closed_${d}`) === "on",
+    };
+  });
 
   await storage.saveSiteAdminState((prev) => ({
     ...prev,
@@ -544,11 +602,11 @@ export async function updateHoursAndCapacity(formData: FormData) {
 
 export async function addClosure(formData: FormData) {
   await requireAdmin();
-  const date = String(formData.get("date") ?? "").trim();
+  const date = cleanString(formData.get("date"), 10);
   const reason =
-    String(formData.get("reason") ?? "").trim() ||
+    cleanString(formData.get("reason"), 160) ||
     "Fermeture exceptionnelle de l'atelier";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  if (!DATE_REGEX.test(date)) return;
 
   await storage.saveSiteAdminState((prev) => {
     const filtered = prev.closures.filter((c) => c.date !== date);
@@ -564,8 +622,8 @@ export async function addClosure(formData: FormData) {
 
 export async function deleteClosure(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const date = String(formData.get("date") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
+  const date = cleanString(formData.get("date"), 10);
   if (!id && !date) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -579,12 +637,21 @@ export async function deleteClosure(formData: FormData) {
 
 export async function savePartnerPlatform(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const url = String(formData.get("url") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
+  const name = cleanString(formData.get("name"), 80);
+  const urlCheck = validateHttpsUrl(formData.get("url"), "L'URL de la plateforme");
   const active = id ? formData.get("active") === "on" : true;
-  const sort = Number(formData.get("sort") ?? 0);
-  if (!name || !url) return;
+  const sort = Math.round(clampNumber(formData.get("sort"), 0, 1000, 0));
+
+  if (!name) return;
+  if (!urlCheck.ok || !urlCheck.value) {
+    const errMsg = !urlCheck.ok
+      ? urlCheck.error
+      : "L'URL de la plateforme est requise et doit commencer par https://";
+    redirect(`/admin?adminError=${encodeURIComponent(errMsg)}#sec-reglages`);
+  }
+
+  const url = urlCheck.value;
 
   await storage.saveSiteAdminState((prev) => {
     if (id) {
@@ -614,7 +681,7 @@ export async function savePartnerPlatform(formData: FormData) {
 
 export async function deletePartnerPlatform(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -634,41 +701,58 @@ export async function updateSettings(formData: FormData) {
   const heroUploaded = await saveUploadedImage(heroFile);
   const workshopUploaded = await saveUploadedImage(workshopFile);
 
+  const urlFields = {
+    googleMapsUrl: validateHttpsUrl(formData.get("googleMapsUrl"), "Lien Google Maps"),
+    googleReviewUrl: validateHttpsUrl(formData.get("googleReviewUrl"), "Lien d'avis Google"),
+    instagram: validateHttpsUrl(formData.get("instagram"), "Lien Instagram"),
+    facebook: validateHttpsUrl(formData.get("facebook"), "Lien Facebook"),
+    tiktok: validateHttpsUrl(formData.get("tiktok"), "Lien TikTok"),
+    snapchat: validateHttpsUrl(formData.get("snapchat"), "Lien Snapchat"),
+  };
+
+  const urlErrors: string[] = [];
+  for (const res of Object.values(urlFields)) {
+    if (!res.ok) urlErrors.push(res.error);
+  }
+
   await storage.saveSiteAdminState((prev) => ({
     ...prev,
     settings: {
       ...prev.settings,
-      name: String(formData.get("name") ?? "Run Auto").trim(),
-      phone: String(formData.get("phone") ?? "06 18 31 89 15").trim(),
-      whatsapp: String(formData.get("whatsapp") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim(),
-      street: String(formData.get("street") ?? "52 boulevard de Roux").trim(),
-      postalCode: String(formData.get("postalCode") ?? "13004").trim(),
-      city: String(formData.get("city") ?? "Marseille").trim(),
-      latitude: Number(formData.get("latitude") ?? 43.3082),
-      longitude: Number(formData.get("longitude") ?? 5.4053),
+      name: cleanString(formData.get("name"), 80) || "Run Auto",
+      phone: cleanString(formData.get("phone"), 25) || "06 18 31 89 15",
+      whatsapp: cleanString(formData.get("whatsapp"), 25),
+      email: cleanString(formData.get("email"), 120),
+      street: cleanString(formData.get("street"), 120) || "52 boulevard de Roux",
+      postalCode: cleanString(formData.get("postalCode"), 12) || "13004",
+      city: cleanString(formData.get("city"), 60) || "Marseille",
+      latitude: clampNumber(formData.get("latitude"), -90, 90, prev.settings.latitude),
+      longitude: clampNumber(formData.get("longitude"), -180, 180, prev.settings.longitude),
       onlineBookingEnabled: formData.get("onlineBookingEnabled") === "on",
-      flagshipEquipment: String(
-        formData.get("flagshipEquipment") ?? "TOPDON Phoenix Max"
-      ).trim(),
-      idGaragesRef: String(formData.get("idGaragesRef") ?? "GA7683").trim(),
-      verifiedRating: Number(
-        String(formData.get("verifiedRating") ?? "4.7").replace(",", ".")
-      ),
-      verifiedReviewCount: String(
-        formData.get("verifiedReviewCount") ?? "68"
-      ).trim(),
-      supportedBrands: String(formData.get("supportedBrands") ?? "").trim(),
-      announcement: String(formData.get("announcement") ?? "").trim(),
-      parkingInfo: String(formData.get("parkingInfo") ?? "").trim(),
-      transportInfo: String(formData.get("transportInfo") ?? "").trim(),
-      warrantyNote: String(formData.get("warrantyNote") ?? "").trim(),
-      googleMapsUrl: String(formData.get("googleMapsUrl") ?? "").trim(),
-      googleReviewUrl: String(formData.get("googleReviewUrl") ?? "").trim(),
-      instagram: String(formData.get("instagram") ?? "").trim(),
-      facebook: String(formData.get("facebook") ?? "").trim(),
-      tiktok: String(formData.get("tiktok") ?? "").trim(),
-      snapchat: String(formData.get("snapchat") ?? "").trim(),
+      flagshipEquipment:
+        cleanString(formData.get("flagshipEquipment"), 100) || "TOPDON Phoenix Max",
+      idGaragesRef: cleanString(formData.get("idGaragesRef"), 40) || "GA7683",
+      verifiedRating:
+        Math.round(
+          clampNumber(formData.get("verifiedRating"), 1, 5, prev.settings.verifiedRating) * 10
+        ) / 10,
+      verifiedReviewCount: cleanString(formData.get("verifiedReviewCount"), 20) || "68",
+      supportedBrands: cleanString(formData.get("supportedBrands"), 240),
+      announcement: cleanString(formData.get("announcement"), 240),
+      parkingInfo: cleanString(formData.get("parkingInfo"), 240),
+      transportInfo: cleanString(formData.get("transportInfo"), 240),
+      warrantyNote: cleanString(formData.get("warrantyNote"), 350),
+      // Les champs URL invalides sont ignorés (valeur précédente conservée)
+      googleMapsUrl: urlFields.googleMapsUrl.ok
+        ? urlFields.googleMapsUrl.value
+        : prev.settings.googleMapsUrl,
+      googleReviewUrl: urlFields.googleReviewUrl.ok
+        ? urlFields.googleReviewUrl.value
+        : prev.settings.googleReviewUrl,
+      instagram: urlFields.instagram.ok ? urlFields.instagram.value : prev.settings.instagram,
+      facebook: urlFields.facebook.ok ? urlFields.facebook.value : prev.settings.facebook,
+      tiktok: urlFields.tiktok.ok ? urlFields.tiktok.value : prev.settings.tiktok,
+      snapchat: urlFields.snapchat.ok ? urlFields.snapchat.value : prev.settings.snapchat,
       ...(clearHero
         ? { heroImage: "/images/hero-performance-light.jpg" }
         : heroUploaded
@@ -682,14 +766,22 @@ export async function updateSettings(formData: FormData) {
     },
   }));
   invalidateSite();
+
+  if (urlErrors.length > 0) {
+    redirect(
+      `/admin?adminError=${encodeURIComponent(
+        `Certains liens invalides ont été ignorés : ${urlErrors.join(" • ")}`
+      )}#sec-reglages`
+    );
+  }
 }
 
 /* ── 6. Galerie Photos Atelier & Avis Clients Vérifiés ──────────────── */
 
 export async function addGalleryPhoto(formData: FormData) {
   await requireAdmin();
-  const alt = String(formData.get("alt") ?? "").trim();
-  const vehicleTag = String(formData.get("vehicleTag") ?? "").trim();
+  const alt = cleanString(formData.get("alt"), 200);
+  const vehicleTag = cleanString(formData.get("vehicleTag"), 80);
   const file = formData.get("file") as File | null;
   if (!alt || !file || file.size === 0) return;
 
@@ -715,7 +807,7 @@ export async function addGalleryPhoto(formData: FormData) {
 
 export async function deleteGalleryPhoto(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -727,19 +819,19 @@ export async function deleteGalleryPhoto(formData: FormData) {
 
 export async function addGarageReview(formData: FormData) {
   await requireAdmin();
-  const author = String(formData.get("author") ?? "").trim();
+  const author = cleanString(formData.get("author"), 80);
   const vehicle =
-    String(formData.get("vehicle") ?? "").trim() || "Client Atelier Run Auto";
-  const rating = Math.min(5, Math.max(1, Number(formData.get("rating") ?? 5)));
-  const source = String(formData.get("source") ?? "idGarages").trim();
+    cleanString(formData.get("vehicle"), 80) || "Client Atelier Run Auto";
+  const rating = Math.round(clampNumber(formData.get("rating"), 1, 5, 5));
+  const source = cleanString(formData.get("source"), 40) || "idGarages";
   const date =
-    String(formData.get("date") ?? "").trim() ||
+    cleanString(formData.get("date"), 40) ||
     new Intl.DateTimeFormat("fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
     }).format(new Date());
-  const comment = String(formData.get("comment") ?? "").trim();
+  const comment = cleanString(formData.get("comment"), 1000);
   if (!author || !comment) return;
 
   await storage.saveSiteAdminState((prev) => ({
@@ -763,7 +855,7 @@ export async function addGarageReview(formData: FormData) {
 
 export async function deleteGarageReview(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "").trim();
+  const id = cleanString(formData.get("id"), 80);
   if (!id) return;
 
   await storage.saveSiteAdminState((prev) => ({

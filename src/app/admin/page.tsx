@@ -39,6 +39,7 @@ import {
   updateSettings,
 } from "@/lib/actions/admin";
 import { AdminWorkshopMonitor } from "@/components/admin/AdminWorkshopMonitor";
+import AdminPasswordForm from "@/components/admin/AdminPasswordForm";
 import { AppointmentStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -72,13 +73,14 @@ function getStatusBadgeClass(status: AppointmentStatus): string {
 async function DashboardContent({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; status?: string; q?: string }>;
+  searchParams: Promise<{ date?: string; status?: string; q?: string; adminError?: string }>;
 }) {
   await requireAdmin();
   const filters = await searchParams;
   const dateFilter = filters.date?.trim() ?? "";
   const statusFilter = filters.status?.trim() ?? "";
   const searchQuery = filters.q?.trim().toLowerCase() ?? "";
+  const adminError = filters.adminError?.trim() ?? "";
   const todayYmd = parisNow().ymd;
 
   const [siteState, allAppointments, messages] = await Promise.all([
@@ -163,6 +165,31 @@ async function DashboardContent({
   const pendingCount = allAppointments.filter((r) => r.status === "pending").length;
   const unreadCount = messages.filter((m) => m.status === "new").length;
   const activeOffersCount = offers.filter((o) => o.active).length;
+
+  // Statistiques de l'atelier (mois en cours à Paris, répartition par statut, Top 5 prestations)
+  const currentMonthPrefix = todayYmd.slice(0, 7); // YYYY-MM
+  const monthAppointmentsCount = allAppointments.filter(
+    (a) => a.date.startsWith(currentMonthPrefix) && a.status !== "cancelled"
+  ).length;
+
+  const statusCounts: Record<AppointmentStatus, number> = {
+    pending: 0,
+    confirmed: 0,
+    in_progress: 0,
+    ready: 0,
+    completed: 0,
+    cancelled: 0,
+  };
+  const serviceCountMap = new Map<string, number>();
+  for (const a of allAppointments) {
+    if (statusCounts[a.status] !== undefined) statusCounts[a.status] += 1;
+    if (a.status !== "cancelled") {
+      serviceCountMap.set(a.serviceName, (serviceCountMap.get(a.serviceName) ?? 0) + 1);
+    }
+  }
+  const topServices = Array.from(serviceCountMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
 
   const inputClass =
     "w-full rounded-xl border border-aluminium bg-glacier px-3.5 py-2.5 text-xs text-carbone placeholder-technique/60 focus:outline-none focus:bg-white focus:border-racing transition-colors";
@@ -265,11 +292,160 @@ async function DashboardContent({
                 Galerie &amp; Avis ({reviews.length})
               </a>
             </li>
+            <li>
+              <a href="#sec-securite" className="hover:text-amber-400 transition-colors">
+                Sécurité
+              </a>
+            </li>
           </ul>
         </nav>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-8 space-y-12">
+        {adminError ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-racing/40 bg-racing-soft px-5 py-4 text-xs font-bold text-racing flex items-center justify-between gap-4"
+          >
+            <span>⚠️ {adminError}</span>
+            <Link href="/admin" className="underline shrink-0">
+              Fermer
+            </Link>
+          </div>
+        ) : null}
+
+        {/* ── STATISTIQUES ATELIER & EXPORT CSV ─────────────────────── */}
+        <section id="sec-stats" className={cardClass}>
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-aluminium pb-4 mb-6">
+            <div>
+              <h2 className="font-display text-xl font-extrabold uppercase text-carbone">
+                Statistiques &amp; Exports Atelier
+              </h2>
+              <p className="text-xs text-technique mt-0.5">
+                Vue synthétique de l&apos;activité du mois ({currentMonthPrefix}) et exports Excel (CSV UTF-8).
+              </p>
+            </div>
+            <form
+              action="/api/admin/export"
+              method="get"
+              className="flex flex-wrap items-center gap-2 text-xs"
+            >
+              <select
+                name="type"
+                defaultValue="appointments"
+                aria-label="Type d'export"
+                className="rounded-xl border border-aluminium bg-glacier px-3 py-2 font-semibold text-carbone"
+              >
+                <option value="appointments">Rendez-vous</option>
+                <option value="messages">Messages / Devis</option>
+              </select>
+              <input
+                type="date"
+                name="from"
+                aria-label="Date de début"
+                className="rounded-xl border border-aluminium bg-glacier px-2.5 py-2 text-carbone"
+              />
+              <input
+                type="date"
+                name="to"
+                aria-label="Date de fin"
+                className="rounded-xl border border-aluminium bg-glacier px-2.5 py-2 text-carbone"
+              />
+              <button
+                type="submit"
+                className="rounded-xl bg-carbone hover:bg-racing text-white px-4 py-2 font-bold uppercase tracking-wider transition-colors"
+              >
+                Exporter CSV ↓
+              </button>
+            </form>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="rounded-xl border border-aluminium bg-glacier/60 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-technique">
+                RDV du mois ({currentMonthPrefix})
+              </p>
+              <p className="font-display text-3xl font-extrabold text-carbone mt-1">
+                {monthAppointmentsCount}
+              </p>
+              <p className="text-[11px] text-technique mt-0.5">Hors annulés</p>
+            </div>
+
+            <div className="rounded-xl border border-racing/30 bg-racing-soft/25 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-racing">
+                À confirmer
+              </p>
+              <p className="font-display text-3xl font-extrabold text-racing mt-1">
+                {statusCounts.pending}
+              </p>
+              <p className="text-[11px] text-technique mt-0.5">En attente de réponse</p>
+            </div>
+
+            <div className="rounded-xl border border-e85/30 bg-e85-soft/25 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-e85">
+                Confirmés / En cours
+              </p>
+              <p className="font-display text-3xl font-extrabold text-e85 mt-1">
+                {statusCounts.confirmed + statusCounts.in_progress + statusCounts.ready}
+              </p>
+              <p className="text-[11px] text-technique mt-0.5">
+                {statusCounts.in_progress} sur le pont · {statusCounts.ready} prêts
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-aluminium bg-glacier/60 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-technique">
+                Messages non lus
+              </p>
+              <p className="font-display text-3xl font-extrabold text-carbone mt-1">
+                {unreadCount}
+              </p>
+              <p className="text-[11px] text-technique mt-0.5">
+                Sur {messages.length} demande(s) reçue(s)
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-aluminium bg-glacier/40 p-4">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-carbone mb-3">
+                Répartition par statut ({allAppointments.length} RDV au total)
+              </h3>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(Object.keys(WORKSHOP_STATUS_LABELS) as AppointmentStatus[]).map((st) => (
+                  <span
+                    key={st}
+                    className={`rounded-full px-3 py-1 font-bold ${getStatusBadgeClass(st)}`}
+                  >
+                    {WORKSHOP_STATUS_LABELS[st]} : {statusCounts[st]}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-aluminium bg-glacier/40 p-4">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-carbone mb-3">
+                Top 5 prestations les plus demandées
+              </h3>
+              {topServices.length === 0 ? (
+                <p className="text-xs text-technique">Aucune donnée pour le moment.</p>
+              ) : (
+                <ol className="space-y-1.5 text-xs">
+                  {topServices.map(([name, count], idx) => (
+                    <li key={name} className="flex items-center justify-between gap-2">
+                      <span className="truncate font-semibold text-carbone">
+                        <strong className="text-racing">{idx + 1}.</strong> {name}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-white border border-aluminium px-2.5 py-0.5 font-bold text-carbone">
+                        {count}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        </section>
         {/* ── 0. SUIVI ATELIER EN DIRECT & VÉHICULES SUR LE PONT ──────── */}
         <section id="sec-atelier" className={cardClass}>
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-aluminium pb-4">
@@ -2092,6 +2268,21 @@ async function DashboardContent({
             ) : null}
           </div>
         </section>
+
+        {/* ── 7. SÉCURITÉ : CHANGER LE MOT DE PASSE ADMINISTRATEUR ─── */}
+        <section id="sec-securite" className={`${cardClass} space-y-6`}>
+          <div>
+            <h2 className="font-display text-2xl font-extrabold uppercase text-carbone">
+              7. Sécurité — Changer mon mot de passe
+            </h2>
+            <p className="text-xs text-technique mt-0.5">
+              Le nouveau mot de passe est chiffré avec bcrypt et remplace immédiatement le mot de
+              passe initial. Toutes les autres sessions ouvertes sont déconnectées.
+            </p>
+          </div>
+
+          <AdminPasswordForm />
+        </section>
       </main>
     </div>
   );
@@ -2100,7 +2291,7 @@ async function DashboardContent({
 export default function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; status?: string; q?: string }>;
+  searchParams: Promise<{ date?: string; status?: string; q?: string; adminError?: string }>;
 }) {
   return (
     <Suspense

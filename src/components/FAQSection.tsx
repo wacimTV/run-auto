@@ -3,9 +3,13 @@
 import React, { useState } from "react";
 import { ChevronDown, HelpCircle, Phone } from "lucide-react";
 import { GARAGE_CONFIG } from "@/config/garage";
+import { GarageSettings } from "@/types";
 
-export default function FAQSection() {
+export default function FAQSection({ settings }: { settings?: GarageSettings }) {
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+  const phoneDisplay = settings?.phone || GARAGE_CONFIG.contact.phoneDisplay;
+  const flagshipEquipment = settings?.flagshipEquipment || GARAGE_CONFIG.equipment.flagshipName;
+  const garageName = settings?.name || GARAGE_CONFIG.name;
 
   const faqs = [
     {
@@ -14,14 +18,14 @@ export default function FAQSection() {
         "Non, la compatibilité ne peut jamais être garantie sans étude préalable. Chaque véhicule fait l'objet d'une vérification technique à l'atelier (motorisation, système d'injection, état général) afin de déterminer la solution d'adaptation à l'E85 appropriée et conforme à la réglementation.",
     },
     {
-      question: "Comment se déroule une reprogrammation moteur chez Run Auto ?",
+      question: `Comment se déroule une reprogrammation moteur chez ${garageName} ?`,
       answer:
         "Toute intervention commence par un diagnostic électronique complet pour vérifier l'absence de défaut et la bonne santé du moteur. Nous adaptons ensuite les paramètres moteur selon votre véhicule et sa motorisation, puis réalisons des contrôles après intervention. Nous n'annonçons jamais de gains chiffrés non vérifiés.",
     },
     {
       question: "Un voyant est allumé au tableau de bord : pouvez-vous simplement l'effacer ?",
       answer:
-        "Effacer un code défaut sans identifier sa cause ne résout pas la panne : le voyant réapparaît généralement très vite. Grâce à notre équipement TOPDON Phoenix Max et à l'étude des schémas électriques constructeur, nous recherchons l'origine réelle du problème afin de vous proposer une réparation adaptée.",
+        `Effacer un code défaut sans identifier sa cause ne résout pas la panne : le voyant réapparaît généralement très vite. Grâce à notre équipement ${flagshipEquipment} et à l'étude des schémas électriques constructeur, nous recherchons l'origine réelle du problème afin de vous proposer une réparation adaptée.`,
     },
     {
       question: "En quoi consistent vos « Solutions FAP » ?",
@@ -100,11 +104,11 @@ export default function FAQSection() {
             </p>
           </div>
           <a
-            href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+            href={`tel:${phoneDisplay.replace(/\s/g, "")}`}
             className="btn-racing px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-2 shrink-0"
           >
             <Phone className="w-3.5 h-3.5" />
-            <span>{GARAGE_CONFIG.contact.phoneDisplay}</span>
+            <span>{phoneDisplay}</span>
           </a>
         </div>
       </div>

@@ -40,6 +40,7 @@ export interface Appointment {
   mileageKm?: string; // Kilométrage compteur (ex: "128 500 km")
   obdCodes?: string; // Codes défauts calculateurs / OBD (ex: "P0171, P0420")
   quoteAmountCents?: number | null; // Montant devis / facture en centimes
+  reminderSentAt?: string; // Horodatage ISO de l'envoi du rappel la veille
   ipAddress?: string;
 }
 

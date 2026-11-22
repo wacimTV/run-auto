@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
-import { verifyAdminSession } from "@/lib/auth";
 import { cleanString, EMAIL_REGEX, getClientIp, isValidPhone } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { sendContactNotification } from "@/lib/email";
 import { ContactMessage } from "@/types";
-
-export async function GET() {
-  const isAdmin = await verifyAdminSession();
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  }
-
-  const contacts = await storage.getContacts();
-  return NextResponse.json({ contacts });
-}
 
 export async function POST(request: NextRequest) {
   try {

@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
                 id="admin-email"
                 name="email"
                 type="email"
-                defaultValue="contact@runauto-marseille.fr"
+                placeholder="votre.email@domaine.fr"
                 required
                 autoComplete="username"
                 className="w-full bg-glacier border border-aluminium rounded-xl px-4 py-3 pl-10 text-sm text-carbone placeholder-technique/60 focus:outline-none focus:bg-white focus:border-racing transition-colors"

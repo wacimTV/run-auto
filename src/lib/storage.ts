@@ -254,6 +254,7 @@ interface StorageBackend {
     id: string,
     patch: AppointmentPatch
   ): Promise<Appointment | null>;
+  markAppointmentReminderSent(id: string, sentAt: string): Promise<void>;
   deleteAppointment(id: string): Promise<boolean>;
   getContacts(): Promise<ContactMessage[]>;
   createContact(contact: ContactMessage): Promise<ContactMessage>;
@@ -449,6 +450,7 @@ interface AppointmentRow {
   appointment_time: string;
   status: Appointment["status"];
   internal_notes: string | null;
+  reminder_sent_at?: string | null;
   ip_address: string | null;
 }
 
@@ -495,6 +497,7 @@ function rowToAppointment(r: AppointmentRow): Appointment {
     mileageKm: decoded.mileageKm,
     obdCodes: decoded.obdCodes,
     quoteAmountCents: decoded.quoteAmountCents,
+    reminderSentAt: r.reminder_sent_at ?? undefined,
     ipAddress: r.ip_address ?? undefined,
   };
 }
@@ -563,11 +566,37 @@ function supabaseBackend(db: SupabaseClient): StorageBackend {
     },
 
     async createAppointment(appointment) {
-      const { error } = await db
-        .from("appointments")
-        .insert(appointmentToRow(appointment));
+      const state = await this.getSiteAdminState();
+      const capacity = Math.max(1, state.settings.slotCapacity || 1);
+      const row = appointmentToRow(appointment);
+      const { error } = await db.rpc("book_appointment", {
+        p_id: row.id,
+        p_created_at: row.created_at,
+        p_service_id: row.service_id,
+        p_service_name: row.service_name,
+        p_is_custom_request: Boolean(row.is_custom_request),
+        p_problem_description: row.problem_description,
+        p_vehicle_make: row.vehicle_make,
+        p_vehicle_model: row.vehicle_model,
+        p_vehicle_year: row.vehicle_year,
+        p_vehicle_fuel: row.vehicle_fuel,
+        p_vehicle_license_plate: row.vehicle_license_plate,
+        p_client_first_name: row.client_first_name,
+        p_client_last_name: row.client_last_name,
+        p_client_phone: row.client_phone,
+        p_client_email: row.client_email,
+        p_preferred_contact: row.preferred_contact,
+        p_appointment_date: row.appointment_date,
+        p_appointment_time: row.appointment_time,
+        p_status: row.status,
+        p_internal_notes: row.internal_notes,
+        p_ip_address: row.ip_address,
+        p_capacity: capacity,
+      });
       if (error) {
-        if (error.code === "23505") throw new Error(DOUBLE_BOOKING_ERROR);
+        if (error.code === "23505" || error.code === "P0001" || /SLOT_FULL/i.test(error.message)) {
+          throw new Error(DOUBLE_BOOKING_ERROR);
+        }
         fail("création du rendez-vous", error);
       }
       return appointment;
@@ -598,11 +627,40 @@ function supabaseBackend(db: SupabaseClient): StorageBackend {
             : current.quoteAmountCents,
       };
 
+      const encodedNotes = encodeInternalNotes(merged);
+
+      // Si on réactive un RDV annulé, vérification atomique de la capacité des ponts
+      if (current.status === "cancelled" && merged.status !== "cancelled") {
+        const state = await this.getSiteAdminState();
+        const capacity = Math.max(1, state.settings.slotCapacity || 1);
+        const { data: rpcData, error: rpcError } = await db.rpc(
+          "update_appointment_status_checked",
+          {
+            p_id: id,
+            p_status: merged.status,
+            p_internal_notes: encodedNotes,
+            p_capacity: capacity,
+          }
+        );
+        if (rpcError) {
+          if (
+            rpcError.code === "23505" ||
+            rpcError.code === "P0001" ||
+            /SLOT_FULL/i.test(rpcError.message)
+          ) {
+            throw new Error(DOUBLE_BOOKING_ERROR);
+          }
+          fail("réactivation du rendez-vous", rpcError);
+        }
+        const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        return row ? rowToAppointment(row as AppointmentRow) : null;
+      }
+
       // Si le statut en base a une contrainte CHECK stricte ('pending','confirmed','cancelled','completed'),
       // on replie 'in_progress' / 'ready' sur 'confirmed' en base si la contrainte lève une erreur 23514.
       const dbPatch: Partial<AppointmentRow> = {
         status: merged.status,
-        internal_notes: encodeInternalNotes(merged),
+        internal_notes: encodedNotes,
       };
 
       let { data, error } = await db
@@ -632,6 +690,14 @@ function supabaseBackend(db: SupabaseClient): StorageBackend {
         fail("mise à jour du rendez-vous", error);
       }
       return data ? rowToAppointment(data as AppointmentRow) : null;
+    },
+
+    async markAppointmentReminderSent(id, sentAt) {
+      const { error } = await db
+        .from("appointments")
+        .update({ reminder_sent_at: sentAt })
+        .eq("id", id);
+      if (error) fail("marquage du rappel", error);
     },
 
     async deleteAppointment(id) {
@@ -799,6 +865,19 @@ const fileBackend: StorageBackend = {
     const data = readFile();
     const apt = data.appointments.find((a) => a.id === id);
     if (!apt) return null;
+    if (apt.status === "cancelled" && patch.status && patch.status !== "cancelled") {
+      const state = mergeSiteAdminState(data.siteAdmin, data.blockedDates);
+      const sameSlotCount = data.appointments.filter(
+        (other) =>
+          other.id !== id &&
+          other.date === apt.date &&
+          other.time === apt.time &&
+          other.status !== "cancelled"
+      ).length;
+      if (sameSlotCount >= Math.max(1, state.settings.slotCapacity)) {
+        throw new Error(DOUBLE_BOOKING_ERROR);
+      }
+    }
     if (patch.status !== undefined) apt.status = patch.status;
     if (patch.internalNotes !== undefined) apt.internalNotes = patch.internalNotes;
     if (patch.mileageKm !== undefined) apt.mileageKm = patch.mileageKm;
@@ -807,6 +886,14 @@ const fileBackend: StorageBackend = {
       apt.quoteAmountCents = patch.quoteAmountCents;
     writeFile(data);
     return apt;
+  },
+
+  async markAppointmentReminderSent(id, sentAt) {
+    const data = readFile();
+    const apt = data.appointments.find((a) => a.id === id);
+    if (!apt) return;
+    apt.reminderSentAt = sentAt;
+    writeFile(data);
   },
 
   async deleteAppointment(id) {
@@ -922,6 +1009,8 @@ export const storage: StorageBackend = {
     getBackend().updateAppointmentStatus(id, status, notes),
   updateAppointmentDetails: (id, patch) =>
     getBackend().updateAppointmentDetails(id, patch),
+  markAppointmentReminderSent: (id, sentAt) =>
+    getBackend().markAppointmentReminderSent(id, sentAt),
   deleteAppointment: (id) => getBackend().deleteAppointment(id),
   getContacts: () => getBackend().getContacts(),
   createContact: (c) => getBackend().createContact(c),

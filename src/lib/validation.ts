@@ -28,6 +28,43 @@ export function escapeHtml(value: string): string {
 }
 
 /**
+ * Valide une URL externe : vide autorisé, sinon obligatoirement https:// avec un hôte valide.
+ */
+export function validateHttpsUrl(
+  raw: unknown,
+  fieldLabel: string
+): { ok: true; value: string } | { ok: false; error: string } {
+  const str = cleanString(raw, 500);
+  if (!str) return { ok: true, value: "" };
+  try {
+    const parsed = new URL(str);
+    if (parsed.protocol !== "https:" || !parsed.hostname || !parsed.hostname.includes(".")) {
+      return {
+        ok: false,
+        error: `${fieldLabel} doit être une URL sécurisée valide commençant par https://`,
+      };
+    }
+    return { ok: true, value: parsed.toString() };
+  } catch {
+    return {
+      ok: false,
+      error: `${fieldLabel} n'est pas une URL https:// valide.`,
+    };
+  }
+}
+
+export function clampNumber(
+  raw: unknown,
+  min: number,
+  max: number,
+  fallback: number
+): number {
+  const n = Number(String(raw ?? "").trim().replace(",", "."));
+  if (Number.isNaN(n) || !Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
  * IP du visiteur. Sur Vercel, x-real-ip / x-vercel-forwarded-for sont posés par la plateforme
  * (non falsifiables par le client), contrairement au premier élément d'un x-forwarded-for brut.
  */

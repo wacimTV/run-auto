@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { GARAGE_CONFIG, getQuoteHref, getServiceBySlug } from "@/config/garage";
+import { getQuoteHref } from "@/config/garage";
+import { getSiteData } from "@/lib/siteData";
+import { COMPATIBLE_FUELS } from "@/lib/motorisations";
 import {
   CheckCircle2,
   Clock,
@@ -21,7 +23,8 @@ import {
 } from "lucide-react";
 
 export async function generateStaticParams() {
-  return GARAGE_CONFIG.services.map((service) => ({
+  const { services } = await getSiteData();
+  return services.map((service) => ({
     slug: service.slug,
   }));
 }
@@ -32,18 +35,19 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const service = GARAGE_CONFIG.services.find((s) => s.slug === slug);
+  const { services, settings } = await getSiteData();
+  const service = services.find((s) => s.slug === slug);
   if (!service) return { title: "Prestation non trouvée" };
 
   return {
-    title: service.seoTitle || `${service.title} à Marseille 13004 | Run Auto`,
+    title: service.seoTitle || `${service.title} à ${settings.city} ${settings.postalCode} | ${settings.name}`,
     description:
       service.seoDescription ||
-      `${service.shortDescription} Devis transparent et prise de rendez-vous en ligne chez Run Auto Marseille (13004).`,
+      `${service.shortDescription} Devis transparent et prise de rendez-vous en ligne chez ${settings.name} ${settings.city} (${settings.postalCode}).`,
     openGraph: {
-      title: service.seoTitle || `${service.title} | Run Auto Marseille`,
+      title: service.seoTitle || `${service.title} | ${settings.name} ${settings.city}`,
       description: service.seoDescription || service.shortDescription,
-      images: service.heroImage ? [{ url: service.heroImage }] : undefined,
+      images: service.image ? [{ url: service.image }] : undefined,
     },
   };
 }
@@ -54,18 +58,23 @@ export default async function ServiceDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const service = GARAGE_CONFIG.services.find((s) => s.slug === slug);
+  const { services, settings } = await getSiteData();
+  const service = services.find((s) => s.slug === slug);
 
   if (!service) {
     notFound();
   }
 
   const relatedServices = (service.related || [])
-    .map((relSlug) => getServiceBySlug(relSlug))
+    .map((relSlug) => services.find((s) => s.slug === relSlug))
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
   const isE85 = service.slug === "conversion-bioethanol-e85";
   const quoteButtonLabel = isE85 ? "Demander un devis E85" : "Demander un devis";
+  const heroSrc = service.image || "/images/hero-performance-light.jpg";
+  const fuelLabels = (service.compatibleFuels ?? [])
+    .map((code) => COMPATIBLE_FUELS.find((f) => f.code === code)?.label ?? code)
+    .filter(Boolean);
 
   return (
     <div className="pt-10 pb-24 bg-glacier">
@@ -87,7 +96,7 @@ export default async function ServiceDetailPage({
                 <div className="flex flex-wrap items-center gap-2 mb-5">
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-glacier border border-aluminium text-xs font-bold uppercase tracking-wider text-carbone">
                     <span className={`w-2 h-2 rounded-full ${isE85 ? "bg-e85" : "bg-racing"}`} />
-                    <span>{service.category}</span>
+                    <span>{service.categoryLabel}</span>
                   </span>
                   {service.badge && (
                     <span
@@ -120,19 +129,34 @@ export default async function ServiceDetailPage({
                   </div>
                   <div className="flex items-center gap-2 text-carbone font-bold">
                     <ShieldCheck className={`w-4 h-4 ${isE85 ? "text-e85" : "text-racing"}`} />
-                    <span>{service.priceNotice}</span>
+                    <span>{service.displayPrice}</span>
                   </div>
                 </div>
 
+                {fuelLabels.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 pb-4">
+                    {fuelLabels.map((lbl) => (
+                      <span
+                        key={lbl}
+                        className="px-2.5 py-0.5 rounded-full bg-glacier border border-aluminium text-[11px] font-semibold text-technique"
+                      >
+                        {lbl}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
                 {/* Dual CTAs: Réservation + Demande de devis */}
                 <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
-                  <Link
-                    href={`/prendre-rendez-vous?service=${service.id}`}
-                    className="btn-racing px-7 py-4 rounded-xl text-xs uppercase tracking-wider font-extrabold inline-flex items-center justify-center gap-2"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span>Prendre rendez-vous</span>
-                  </Link>
+                  {settings.onlineBookingEnabled ? (
+                    <Link
+                      href={`/prendre-rendez-vous?service=${service.id}`}
+                      className="btn-racing px-7 py-4 rounded-xl text-xs uppercase tracking-wider font-extrabold inline-flex items-center justify-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>Prendre rendez-vous</span>
+                    </Link>
+                  ) : null}
 
                   <Link
                     href={getQuoteHref(service.quoteKey)}
@@ -148,10 +172,11 @@ export default async function ServiceDetailPage({
             {/* Hero Photo */}
             <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-full bg-glacier">
               <Image
-                src={service.heroImage || "/images/hero-performance-light.jpg"}
-                alt={service.imageAlt || `${service.title} chez Run Auto Marseille`}
+                src={heroSrc}
+                alt={service.imageAlt || `${service.title} chez ${settings.name} ${settings.city}`}
                 fill
                 priority
+                unoptimized={heroSrc.startsWith("/api/")}
                 sizes="(max-width: 1024px) 100vw, 45vw"
                 className="object-cover"
               />
@@ -358,7 +383,7 @@ export default async function ServiceDetailPage({
                           relIsE85 ? "text-e85" : "text-racing"
                         }`}
                       >
-                        {rel.category}
+                        {rel.categoryLabel}
                       </span>
                       <h3
                         className={`text-sm font-extrabold text-carbone transition-colors mb-1.5 ${
@@ -391,16 +416,18 @@ export default async function ServiceDetailPage({
           </h2>
           <p className="text-xs sm:text-sm text-technique max-w-xl mx-auto">
             Réservez directement votre créneau en ligne, demandez un devis personnalisé ou appelez l&apos;atelier au{" "}
-            <strong className="text-carbone">{GARAGE_CONFIG.contact.phoneDisplay}</strong>.
+            <strong className="text-carbone">{settings.phone}</strong>.
           </p>
           <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-            <Link
-              href={`/prendre-rendez-vous?service=${service.id}`}
-              className="btn-racing px-7 py-3.5 rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Prendre rendez-vous</span>
-            </Link>
+            {settings.onlineBookingEnabled ? (
+              <Link
+                href={`/prendre-rendez-vous?service=${service.id}`}
+                className="btn-racing px-7 py-3.5 rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Prendre rendez-vous</span>
+              </Link>
+            ) : null}
             <Link
               href={getQuoteHref(service.quoteKey)}
               className="btn-outline-racing px-7 py-3.5 rounded-xl text-xs uppercase tracking-wider font-bold flex items-center gap-2"
@@ -409,11 +436,11 @@ export default async function ServiceDetailPage({
               <span>{quoteButtonLabel}</span>
             </Link>
             <a
-              href={`tel:${GARAGE_CONFIG.contact.phone.replace(/\s/g, "")}`}
+              href={`tel:${settings.phone.replace(/\s/g, "")}`}
               className="btn-outline-racing px-6 py-3.5 rounded-xl text-xs font-bold flex items-center gap-2"
             >
               <Phone className="w-3.5 h-3.5 text-racing" />
-              <span>{GARAGE_CONFIG.contact.phoneDisplay}</span>
+              <span>{settings.phone}</span>
             </a>
           </div>
         </div>
