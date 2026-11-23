@@ -130,38 +130,8 @@ export function defaultSiteAdminState(): SiteAdminState {
     };
   });
 
-  const offers: WorkshopOffer[] = [
-    {
-      id: "offer-e85-bilan",
-      title: "Étude de Compatibilité E85 + Lecture Calculateurs",
-      badge: "Bioéthanol E85",
-      priceCents: null,
-      description:
-        "Vérification de votre motorisation essence/hybride, contrôle de l'état d'allumage et chiffrage personnalisé pour rouler au Superéthanol E85.",
-      active: true,
-      sort: 1,
-    },
-    {
-      id: "offer-diag-topdon",
-      title: "Bilan Électronique Complet TOPDON Phoenix Max",
-      badge: "Diagnostic Pro",
-      priceCents: null,
-      description:
-        "Interrogation complète de tous les calculateurs du véhicule, lecture des défauts enregistrés, analyse des valeurs en temps réel et rapport d'intervention.",
-      active: true,
-      sort: 2,
-    },
-    {
-      id: "offer-revision-securite",
-      title: "Forfait Révision Constructeur + Contrôle Points de Sécurité",
-      badge: "Entretien",
-      priceCents: null,
-      description:
-        "Vidange huile certifiée norme constructeur, remplacement des filtres, contrôle visuel du freinage, des niveaux et remise à zéro de l'indicateur de maintenance.",
-      active: true,
-      sort: 3,
-    },
-  ];
+  // Aucune offre par défaut : la section « Forfaits & Offres » reste masquée tant que le patron n'en crée pas dans /admin.
+  const offers: WorkshopOffer[] = [];
 
   const platforms: PartnerPlatform[] = [
     {
