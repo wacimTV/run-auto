@@ -4,8 +4,10 @@ import { GARAGE_CONFIG } from "@/config/garage";
 import { getSiteData } from "@/lib/siteData";
 
 export const metadata: Metadata = {
-  title: "Politique de Confidentialité & RGPD | Run Auto Marseille",
-  description: "Politique de protection des données personnelles et respect du RGPD pour le site Run Auto Marseille.",
+  title: "Politique de confidentialité",
+  description:
+    "Comment Run Auto Marseille protège vos données personnelles (RGPD) : données collectées, durée de conservation, sous-traitants et vos droits.",
+  alternates: { canonical: "/politique-confidentialite" },
 };
 
 const CARD =

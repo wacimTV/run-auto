@@ -308,6 +308,9 @@ export default function Footer({
             <Link href="/faq" className="hover:text-carbone transition-colors">
               FAQ
             </Link>
+            <Link href="/garage-marseille-13004" className="hover:text-carbone transition-colors">
+              Garage Marseille 13004
+            </Link>
             <Link
               href="/admin"
               className="text-technique/80 hover:text-racing transition-colors flex items-center gap-1"

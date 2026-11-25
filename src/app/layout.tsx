@@ -32,12 +32,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default:
-      "Run Auto Marseille | Reprogrammation Moteur, Conversion Bioéthanol E85 & Diagnostic Électronique",
+    default: "Garage & mécanicien Marseille 13004 – Reprogrammation, E85 | Run Auto",
     template: "%s | Run Auto Marseille",
   },
   description:
-    "Atelier spécialisé en reprogrammation moteur, conversion bioéthanol E85, diagnostic électronique avancé (TOPDON Phoenix Max), recherche de panne sur schémas électriques, ajout d'options, Solutions FAP et mécanique générale à Marseille (13004).",
+    "Garage mécanicien à Marseille 13004 : entretien, freins, embrayage, diagnostic, et spécialiste reprogrammation moteur, E85 et électronique. Devis et RDV en ligne.",
   keywords: [
     "Reprogrammation moteur Marseille",
     "Conversion bioéthanol E85 Marseille",
@@ -68,7 +67,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    url: SITE_URL,
     title: "Run Auto Marseille | Reprogrammation Moteur, Bioéthanol E85 & Électronique Automobile",
     description:
       "Spécialiste reprogrammation moteur, conversion E85, diagnostic électronique avancé, recherche de panne électrique et mécanique générale au 52 boulevard de Roux, 13004 Marseille.",
@@ -88,9 +86,6 @@ export const metadata: Metadata = {
     description:
       "Adaptation Bioéthanol E85, reprogrammation moteur, diagnostic électronique TOPDON Phoenix Max et mécanique générale à Marseille 13004.",
     images: ["/images/hero-performance.jpg"],
-  },
-  alternates: {
-    canonical: SITE_URL,
   },
 };
 
@@ -152,6 +147,24 @@ export default async function RootLayout({
     telephone: phoneIntl,
     email: s?.email || GARAGE_CONFIG.contact.email,
     priceRange: "€€",
+    alternateName: ["Garage Run Auto", "Run Auto Marseille"],
+    areaServed: [
+      { "@type": "City", name: "Marseille" },
+      { "@type": "AdministrativeArea", name: "Bouches-du-Rhône" },
+    ],
+    knowsAbout: [
+      "Mécanique automobile",
+      "Entretien et vidange",
+      "Freinage",
+      "Embrayage",
+      "Distribution",
+      "Diagnostic automobile",
+      "Reprogrammation moteur",
+      "Conversion bioéthanol E85",
+      "Électronique automobile",
+      "Codage et activation d'options",
+      "Filtre à particules (FAP)",
+    ],
     address: {
       "@type": "PostalAddress",
       streetAddress: s?.street || GARAGE_CONFIG.contact.address,

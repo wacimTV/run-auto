@@ -6,9 +6,10 @@ import { Calendar } from "lucide-react";
 import { getSiteData } from "@/lib/siteData";
 
 export const metadata: Metadata = {
-  title: "Foire Aux Questions (FAQ) | Run Auto Marseille 13004",
+  title: "FAQ – E85, reprogrammation, diagnostic",
   description:
-    "Toutes les réponses à vos questions sur la conversion Bioéthanol E85, la reprogrammation moteur, le diagnostic électronique TOPDON et les réparations chez Run Auto Marseille.",
+    "Réponses sur la conversion E85, la reprogrammation moteur, le diagnostic électronique et l’entretien de votre voiture chez Run Auto à Marseille 13004.",
+  alternates: { canonical: "/faq" },
 };
 
 export default async function FAQPage() {

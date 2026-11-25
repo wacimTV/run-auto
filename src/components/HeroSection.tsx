@@ -83,7 +83,7 @@ export default function HeroSection({ settings }: { settings?: GarageSettings })
         <div className="inline-flex flex-wrap items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-aluminium shadow-2xs mb-6">
           <span className="w-2 h-2 rounded-full bg-racing animate-pulse" />
           <span className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-carbone">
-            Atelier Spécialisé • {city} {postalCode}
+            Garage &amp; Mécanicien Auto • {city} {postalCode}
           </span>
           <span className="text-[11px] text-racing font-bold hidden sm:inline">
             • {flagshipEquipment}
@@ -92,6 +92,9 @@ export default function HeroSection({ settings }: { settings?: GarageSettings })
 
         {/* Titre principal en Noir Carbone (#17191D) avec « Bioéthanol E85 » en Rouge Racing (#D71920) */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-carbone max-w-4xl leading-[1.05] mb-6 font-display">
+          <span className="block text-lg sm:text-2xl font-bold tracking-normal text-technique mb-3">
+            Garage &amp; mécanicien auto à {city}
+          </span>
           Spécialiste Reprogrammation,{" "}
           <span className="text-racing">Bioéthanol E85</span> &amp;{" "}
           <span className="text-carbone">Électronique Auto</span>.
@@ -99,7 +102,7 @@ export default function HeroSection({ settings }: { settings?: GarageSettings })
 
         {/* Editorial Subtitle en Gris Technique (#626B75) */}
         <p className="text-base sm:text-xl text-technique max-w-2xl leading-relaxed font-normal mb-9">
-          Adaptation au superéthanol E85, optimisation moteur sur-mesure, diagnostic électronique avancé, recherche de pannes complexes sur schémas constructeur, codage d&apos;options, Solutions FAP et mécanique générale au{" "}
+          Votre mécanicien à {city} pour l&apos;entretien, la vidange, les freins, l&apos;embrayage, la distribution et le diagnostic, et un atelier spécialisé en conversion E85, reprogrammation moteur, électronique automobile, codage d&apos;options et Solutions FAP, au{" "}
           <strong className="text-carbone font-bold">{street} ({postalCode} {city})</strong>.
         </p>
 

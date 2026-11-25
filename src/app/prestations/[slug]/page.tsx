@@ -1,4 +1,5 @@
 import React from "react";
+import { absoluteUrl } from "@/config/site";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -44,7 +45,9 @@ export async function generateMetadata({
     description:
       service.seoDescription ||
       `${service.shortDescription} Devis transparent et prise de rendez-vous en ligne chez ${settings.name} ${settings.city} (${settings.postalCode}).`,
+    alternates: { canonical: `/prestations/${service.slug}` },
     openGraph: {
+      url: `/prestations/${service.slug}`,
       title: service.seoTitle || `${service.title} | ${settings.name} ${settings.city}`,
       description: service.seoDescription || service.shortDescription,
       images: service.image ? [{ url: service.image }] : undefined,
@@ -76,8 +79,51 @@ export default async function ServiceDetailPage({
     .map((code) => COMPATIBLE_FUELS.find((f) => f.code === code)?.label ?? code)
     .filter(Boolean);
 
+  // Données structurées Google : service local, fil d'Ariane et FAQ de la page
+  const pageUrl = absoluteUrl(`/prestations/${service.slug}`);
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: `${service.title} à ${settings.city}`,
+      serviceType: service.title,
+      description: service.seoDescription || service.shortDescription,
+      url: pageUrl,
+      areaServed: { "@type": "City", name: settings.city },
+      provider: { "@id": absoluteUrl("/#garage") },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Accueil", item: absoluteUrl("/") },
+        { "@type": "ListItem", position: 2, name: "Prestations", item: absoluteUrl("/prestations") },
+        { "@type": "ListItem", position: 3, name: service.title, item: pageUrl },
+      ],
+    },
+    ...(service.faqs && service.faqs.length > 0
+      ? [
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: service.faqs.map((f) => ({
+              "@type": "Question",
+              name: f.question,
+              acceptedAnswer: { "@type": "Answer", text: f.answer },
+            })),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="pt-10 pb-24 bg-glacier">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="max-w-6xl mx-auto px-4 sm:px-8">
         {/* Breadcrumb navigation */}
         <Link
@@ -110,7 +156,8 @@ export default async function ServiceDetailPage({
                 </div>
 
                 <h1 className="text-3xl sm:text-5xl font-extrabold text-carbone mb-5 leading-[1.1] font-display">
-                  {service.title}
+                  {service.title}{" "}
+                  <span className="text-technique">à {settings.city}</span>
                 </h1>
 
                 <p className="text-base text-technique leading-relaxed mb-8">

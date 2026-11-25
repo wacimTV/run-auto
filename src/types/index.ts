@@ -192,6 +192,8 @@ export interface SiteAdminState {
   closures: ClosureEntry[];
   categories: AdminServiceCategory[];
   services: AdminServiceItem[];
+  /** Prestations par défaut (GARAGE_CONFIG) supprimées volontairement dans l'admin. */
+  removedDefaultServiceIds?: string[];
   offers: WorkshopOffer[];
   platforms: PartnerPlatform[];
   gallery: GalleryPhoto[];

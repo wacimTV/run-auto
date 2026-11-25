@@ -7,10 +7,10 @@ import { DAY_NAMES } from "@/lib/motorisations";
 import { MapPin, Phone, Clock, Navigation, Fuel, Gauge, Cpu, Mail, MessageCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-  title:
-    "Demande de Devis (E85, Reprogrammation, Diagnostic) & Contact | Run Auto Marseille 13004",
+  title: "Devis & contact – Garage à Marseille 13004",
   description:
     "Demandez votre devis conversion bioéthanol E85, reprogrammation moteur, diagnostic électronique ou mécanique chez Run Auto à Marseille.",
+  alternates: { canonical: "/contact" },
 };
 
 export default async function ContactPage() {

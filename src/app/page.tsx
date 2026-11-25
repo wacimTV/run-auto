@@ -1,4 +1,5 @@
 import React from "react";
+import type { Metadata } from "next";
 import HeroSection from "@/components/HeroSection";
 import HomeSpecialtySections from "@/components/HomeSpecialtySections";
 import GaragePresentation from "@/components/GaragePresentation";
@@ -12,6 +13,10 @@ import FAQSection from "@/components/FAQSection";
 import Link from "next/link";
 import { Phone, Calendar, Sparkles, FileText } from "lucide-react";
 import { getSiteData, toBookingServices, toServiceCards } from "@/lib/siteData";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function HomePage() {
   const siteData = await getSiteData();

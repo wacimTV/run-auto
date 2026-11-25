@@ -1,8 +1,16 @@
 import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import BookingWizard from "@/components/BookingWizard";
 import { Calendar, ShieldCheck, Phone, Clock, FileText } from "lucide-react";
 import { getSiteData, toBookingServices } from "@/lib/siteData";
+
+export const metadata: Metadata = {
+  title: "Prendre rendez-vous en ligne – Garage Marseille",
+  description:
+    "Réservez votre créneau en ligne chez Run Auto, garage à Marseille 13004 : diagnostic, E85, reprogrammation ou mécanique. Confirmation par l’atelier.",
+  alternates: { canonical: "/prendre-rendez-vous" },
+};
 
 export default async function PrendreRendezVousPage({
   searchParams,

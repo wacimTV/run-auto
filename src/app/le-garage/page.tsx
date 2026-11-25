@@ -17,10 +17,10 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title:
-    "L'Atelier Run Auto Marseille 13004 | Équipement TOPDON Phoenix Max, Électronique & Savoir-Faire",
+  title: "L’atelier – Diagnostic TOPDON & électronique",
   description:
-    "Découvrez l'atelier Run Auto au 52 boulevard de Roux (13004 Marseille) : équipements de diagnostic de dernière génération TOPDON Phoenix Max, recherche de pannes sur schémas électriques, reprogrammation moteur, conversion E85 et mécanique.",
+    "L’atelier Run Auto au 52 bd de Roux, Marseille 13004 : diagnostic TOPDON Phoenix Max, recherche de panne électrique, reprogrammation, E85 et mécanique.",
+  alternates: { canonical: "/le-garage" },
 };
 
 export default async function LeGaragePage() {

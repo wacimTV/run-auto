@@ -10,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "",
     "/prestations",
     "/le-garage",
+    "/garage-marseille-13004",
     "/prendre-rendez-vous",
     "/contact",
     "/faq",

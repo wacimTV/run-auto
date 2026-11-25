@@ -877,12 +877,118 @@ export const GARAGE_CONFIG = {
         { title: "Contrôle des étriers", description: "Vérification du fonctionnement et de l'état des étriers." },
       ],
       quoteKey: "mecanique",
-      related: ["mecanique-generale", "entretien-revision", "distribution-mecanique"],
+      related: ["embrayage", "mecanique-generale", "entretien-revision"],
       faqs: [
         {
           question: "Quand faut-il remplacer le liquide de frein ?",
           answer:
             "Le liquide de frein absorbe naturellement l'humidité ambiante au fil des mois, ce qui réduit son point d'ébullition. Il est impératif de le purger tous les 2 ans.",
+        },
+      ],
+    },
+    {
+      id: "srv-embrayage",
+      slug: "embrayage",
+      title: "Embrayage & Volant Moteur",
+      category: "Mécanique générale",
+      shortDescription:
+        "Diagnostic et remplacement du kit d'embrayage (disque, mécanisme, butée), volant moteur bimasse et commande hydraulique.",
+      fullDescription:
+        "Un embrayage qui patine, qui broute ou une pédale devenue dure : Run Auto diagnostique l'origine exacte du problème (kit d'embrayage, butée, volant moteur bimasse ou commande hydraulique) et vous remet un devis clair avant toute intervention, dans notre atelier de Marseille 13004.",
+      estimatedDurationMinutes: 240,
+      durationLabel: "Selon le véhicule",
+      priceNotice: "Devis détaillé selon votre modèle",
+      badge: "Mécanique",
+      iconName: "Cog",
+      heroImage: "/images/workshop-brakes-light.jpg",
+      imageAlt: "Remplacement d'embrayage chez Run Auto, garage à Marseille 13004",
+      seoTitle: "Embrayage à Marseille – Remplacement kit & volant moteur",
+      seoDescription:
+        "Embrayage qui patine ou pédale dure ? Remplacement du kit d'embrayage et du volant moteur bimasse à Marseille 13004. Diagnostic et devis clair chez Run Auto.",
+      symptomsTitle: "Les signes d'un embrayage fatigué",
+      symptoms: [
+        "Le moteur monte dans les tours mais la voiture n'accélère pas (l'embrayage patine)",
+        "Pédale d'embrayage dure, molle ou qui reste enfoncée",
+        "Vitesses difficiles à passer, craquements au passage des rapports",
+        "Vibrations ou à-coups au démarrage (embrayage qui broute)",
+        "Bruit de claquement au ralenti pouvant venir du volant moteur bimasse",
+      ],
+      benefits: [
+        "Diagnostic précis avant remplacement : on ne change que ce qui est nécessaire",
+        "Kits d'embrayage de qualité équivalente à l'origine",
+        "Contrôle du volant moteur bimasse et de la commande hydraulique",
+        "Essai routier systématique après intervention",
+      ],
+      interventions: [
+        { title: "Remplacement du kit d'embrayage", description: "Disque, mécanisme et butée remplacés ensemble pour une usure homogène." },
+        { title: "Volant moteur bimasse", description: "Contrôle du jeu et remplacement si nécessaire, souvent en même temps que l'embrayage." },
+        { title: "Commande d'embrayage", description: "Purge, émetteur et récepteur hydrauliques ou câble selon le véhicule." },
+      ],
+      quoteKey: "mecanique",
+      related: ["mecanique-generale", "freinage-securite", "diagnostic-automobile"],
+      faqs: [
+        {
+          question: "Combien de temps dure un embrayage ?",
+          answer:
+            "En moyenne entre 100 000 et 200 000 km, selon la conduite et l'usage (ville, remorquage, démarrages fréquents). En ville, comme à Marseille, l'usure est souvent plus rapide.",
+        },
+        {
+          question: "Faut-il changer le volant moteur en même temps que l'embrayage ?",
+          answer:
+            "Pas systématiquement. Nous contrôlons le volant moteur bimasse lors du démontage : s'il présente trop de jeu, il est préférable de le remplacer en même temps pour éviter un second démontage.",
+        },
+      ],
+    },
+    {
+      id: "srv-injection-egr",
+      slug: "injecteurs-vanne-egr",
+      title: "Injecteurs & Vanne EGR",
+      category: "Mécanique générale",
+      shortDescription:
+        "Diagnostic, nettoyage ou remplacement des injecteurs et de la vanne EGR : perte de puissance, fumée, à-coups, voyant moteur.",
+      fullDescription:
+        "Injecteurs encrassés ou vanne EGR bloquée provoquent perte de puissance, fumées, surconsommation et voyant moteur. Run Auto identifie la pièce en cause grâce au diagnostic électronique TOPDON Phoenix Max et aux mesures en temps réel, avant de proposer la solution la plus adaptée à votre véhicule.",
+      estimatedDurationMinutes: 120,
+      durationLabel: "Selon le diagnostic",
+      priceNotice: "Diagnostic puis devis personnalisé",
+      badge: "Moteur",
+      iconName: "Gauge",
+      heroImage: "/images/diagnostic-engine-light.jpg",
+      imageAlt: "Diagnostic des injecteurs et de la vanne EGR chez Run Auto Marseille",
+      seoTitle: "Injecteurs & vanne EGR à Marseille – Diagnostic et réparation",
+      seoDescription:
+        "Perte de puissance, fumée ou voyant moteur ? Diagnostic, nettoyage ou remplacement des injecteurs et de la vanne EGR à Marseille 13004 chez Run Auto.",
+      symptomsTitle: "Les signes d'un problème d'injection ou d'EGR",
+      symptoms: [
+        "Perte de puissance, passage en mode dégradé",
+        "Fumée noire ou blanche à l'échappement",
+        "Ralenti instable, à-coups ou calages",
+        "Surconsommation de carburant",
+        "Voyant moteur allumé",
+      ],
+      benefits: [
+        "Diagnostic électronique et lecture des valeurs en temps réel",
+        "Identification de la pièce réellement en cause avant toute dépense",
+        "Nettoyage quand c'est possible, remplacement quand c'est nécessaire",
+        "Effacement des défauts et essai routier après intervention",
+      ],
+      interventions: [
+        { title: "Diagnostic d'injection", description: "Lecture des défauts, corrections d'injecteurs et valeurs en temps réel." },
+        { title: "Vanne EGR", description: "Contrôle, nettoyage ou remplacement selon son état d'encrassement." },
+        { title: "Injecteurs", description: "Contrôle et remplacement, avec codage des injecteurs lorsque le véhicule l'exige." },
+      ],
+      quoteKey: "diagnostic",
+      related: ["diagnostic-automobile", "solutions-fap", "reprogrammation-moteur"],
+      faqs: [
+        {
+          question: "Quels sont les symptômes d'une vanne EGR encrassée ?",
+          answer:
+            "Perte de puissance, fumée noire, à-coups à l'accélération, ralenti instable et souvent un voyant moteur allumé. Un diagnostic électronique permet de confirmer que la vanne EGR est bien en cause.",
+        },
+        {
+          question: "Peut-on nettoyer un injecteur au lieu de le remplacer ?",
+          answer:
+            "Parfois, oui. Après diagnostic, nous vous indiquons si un nettoyage peut suffire ou si le remplacement est nécessaire, avec un devis avant toute intervention.",
         },
       ],
     },

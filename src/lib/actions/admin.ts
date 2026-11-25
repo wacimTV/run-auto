@@ -505,6 +505,10 @@ export async function deleteServiceItem(formData: FormData) {
   await storage.saveSiteAdminState((prev) => ({
     ...prev,
     services: prev.services.filter((s) => s.id !== id),
+    // Mémorise la suppression pour qu'une prestation par défaut ne réapparaisse pas
+    removedDefaultServiceIds: Array.from(
+      new Set([...(prev.removedDefaultServiceIds ?? []), id])
+    ),
   }));
   invalidateSite();
 }

@@ -7,10 +7,10 @@ import { ShieldCheck, Cpu, Wrench, Fuel, Gauge, FileText, Calendar } from "lucid
 import { getSiteData, toServiceCards } from "@/lib/siteData";
 
 export const metadata: Metadata = {
-  title:
-    "Prestations : Bioéthanol E85, Reprogrammation Moteur, Électronique & Mécanique à Marseille",
+  title: "Prestations – E85, reprogrammation, électronique",
   description:
-    "Découvrez toutes les prestations de l'atelier Run Auto à Marseille (13004) : conversion bioéthanol E85, reprogrammation moteur, diagnostic électronique TOPDON Phoenix Max, recherche de panne sur schémas électriques, ajout d'options, Solutions FAP et mécanique générale.",
+    "Toutes les prestations Run Auto à Marseille 13004 : conversion E85, reprogrammation moteur, diagnostic électronique, options, solutions FAP et mécanique.",
+  alternates: { canonical: "/prestations" },
 };
 
 export default async function PrestationsPage() {

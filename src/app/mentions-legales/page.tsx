@@ -4,8 +4,10 @@ import { GARAGE_CONFIG } from "@/config/garage";
 import { getSiteData } from "@/lib/siteData";
 
 export const metadata: Metadata = {
-  title: "Mentions Légales | Run Auto Marseille",
-  description: "Mentions légales officielles et informations administratives du garage Run Auto à Marseille.",
+  title: "Mentions légales",
+  description:
+    "Mentions légales et informations administratives de la SAS RUN AUTO, garage automobile au 52 boulevard de Roux, 13004 Marseille.",
+  alternates: { canonical: "/mentions-legales" },
 };
 
 export default async function MentionsLegalesPage() {

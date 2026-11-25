@@ -352,6 +352,26 @@ function writeFile(data: StorageData): void {
   fs.renameSync(tempFile, STORAGE_FILE);
 }
 
+/**
+ * Prestations : celles enregistrées dans l'admin, plus les nouvelles prestations
+ * ajoutées dans GARAGE_CONFIG après coup (nouvelles pages), sauf celles que le
+ * patron a volontairement supprimées dans l'admin.
+ */
+function mergeServices(
+  stored: Partial<SiteAdminState> | undefined,
+  defaults: AdminServiceItem[]
+): AdminServiceItem[] {
+  const storedServices = stored?.services ?? [];
+  if (storedServices.length === 0) return defaults;
+  const removed = new Set(stored?.removedDefaultServiceIds ?? []);
+  const known = new Set(storedServices.flatMap((s) => [s.id, s.slug]));
+  const maxSort = storedServices.reduce((m, s) => Math.max(m, s.sort ?? 0), 0);
+  const added = defaults
+    .filter((d) => !known.has(d.id) && !known.has(d.slug) && !removed.has(d.id))
+    .map((d, i) => ({ ...d, sort: maxSort + i + 1 }));
+  return [...storedServices, ...added];
+}
+
 function mergeSiteAdminState(
   stored: Partial<SiteAdminState> | undefined,
   blockedDates: string[]
@@ -383,8 +403,8 @@ function mergeSiteAdminState(
       stored?.categories && stored.categories.length > 0
         ? stored.categories
         : def.categories,
-    services:
-      stored?.services && stored.services.length > 0 ? stored.services : def.services,
+    services: mergeServices(stored, def.services),
+    removedDefaultServiceIds: stored?.removedDefaultServiceIds ?? [],
     offers: stored?.offers ?? def.offers,
     platforms:
       stored?.platforms && stored.platforms.length > 0
