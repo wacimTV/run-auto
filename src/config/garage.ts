@@ -133,6 +133,9 @@ export const GARAGE_CONFIG = {
   partner: {
     idGaragesRef: "GA7683",
     idGaragesUrl: "https://www.idgarages.com/fr-fr/garage/marseille/GA7683_run-auto",
+    // Lien Google qui ouvre directement la notation par étoiles de la fiche Run Auto
+    googleReviewUrl:
+      "https://search.google.com/local/writereview?placeid=ChIJV8HxBfi_yRIR-5uqxzWIV0o",
     idGaragesRating: "4.7",
     networkReviewsCount: "34 000+", // Réseau idGarages certifié
     badgeText: "Garage Indépendant Partenaire Référencé",

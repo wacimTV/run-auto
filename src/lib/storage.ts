@@ -68,7 +68,7 @@ export function defaultSiteAdminState(): SiteAdminState {
     warrantyNote:
       "Garantie constructeur préservée (Règlement UE n° 461/2010) • Devis transparent validé avant toute intervention • Diagnostic TOPDON Phoenix Max",
     googleMapsUrl: GARAGE_CONFIG.contact.googleMapsUrl,
-    googleReviewUrl: GARAGE_CONFIG.partner.idGaragesUrl,
+    googleReviewUrl: GARAGE_CONFIG.partner.googleReviewUrl,
     instagram: "",
     facebook: "",
     tiktok: "",
@@ -372,6 +372,19 @@ function mergeServices(
   return [...storedServices, ...added];
 }
 
+/**
+ * Corrige d'anciennes valeurs par défaut déjà enregistrées dans la base.
+ * Le lien « Laisser un avis Google » pointait autrefois par défaut vers idGarages :
+ * on le remplace par le lien Google qui ouvre directement la notation par étoiles.
+ */
+function migrateSettings(settings: GarageSettings): GarageSettings {
+  const review = settings.googleReviewUrl?.trim() ?? "";
+  if (!review || review === GARAGE_CONFIG.partner.idGaragesUrl) {
+    return { ...settings, googleReviewUrl: GARAGE_CONFIG.partner.googleReviewUrl };
+  }
+  return settings;
+}
+
 function mergeSiteAdminState(
   stored: Partial<SiteAdminState> | undefined,
   blockedDates: string[]
@@ -396,7 +409,7 @@ function mergeSiteAdminState(
   );
 
   return {
-    settings: { ...def.settings, ...(stored?.settings ?? {}) },
+    settings: migrateSettings({ ...def.settings, ...(stored?.settings ?? {}) }),
     hours: stored?.hours && stored.hours.length === 7 ? stored.hours : def.hours,
     closures,
     categories:
